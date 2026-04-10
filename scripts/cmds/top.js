@@ -10,7 +10,7 @@ module.exports = {
     name: "top",
     aliases: ["balldb", "topbalance"],
     version: "1.12-loading-fixed",
-    author: "Fixed loading + db path",
+    author: "Hridoy",
     countDown: 15,
     role: 0,
     description: { en: "Balance leaderboard with glow + fixed loading animation" },

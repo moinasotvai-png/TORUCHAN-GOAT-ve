@@ -5,34 +5,29 @@ const path = require("path");
 
 module.exports.config = {
   name: "prayerTimer",
-  version: "1.1",
+  version: "2.0-fixed",
   role: 0,
   author: "Hridoy",
-  description: "নামাজ টাইমে ভিডিও + Random Dua সহ মেসেজ যাবে",
+  description: "নামাজ টাইমে ভিডিও + Random Dua সহ মেসেজ যাবে (No Duplicate)",
   category: "Utility",
   countDown: 5,
 };
 
-// ✅ GLOBAL LOCK (important)
-if (!global.prayerTimerState) {
-  global.prayerTimerState = {
-    lastSentKey: null,
-    intervalStarted: false
-  };
+// 🔐 Credit Protection
+if (module.exports.config.author !== "Hridoy") {
+  console.log("❌ Credit changed! File stopped.");
+  return;
 }
 
 module.exports.onLoad = async function ({ api }) {
 
-  // 🔥 prevent multiple intervals
-  if (global.prayerTimerState.intervalStarted) return;
-  global.prayerTimerState.intervalStarted = true;
-
+  // 🔥 24h format use (IMPORTANT FIX)
   const prayerTimes = {
-    "05:00 AM": "🕌 ফজরের নামাজের সময় হয়েছে",
-    "01:15 PM": "🕌 যোহরের নামাজের সময় হয়েছে",
-    "04:30 PM": "🕌 আসরের নামাজের সময় হয়েছে",
-    "06:15 PM": "🕌 মাগরিবের নামাজের সময় হয়েছে",
-    "08:00 PM": "🕌 এশার নামাজের সময় হয়েছে"
+    "05:00": "🕌 ফজরের নামাজের সময় হয়েছে",
+    "13:15": "🕌 যোহরের নামাজের সময় হয়েছে",
+    "16:30": "🕌 আসরের নামাজের সময় হয়েছে",
+    "18:15": "🕌 মাগরিবের নামাজের সময় হয়েছে",
+    "20:00": "🕌 এশার নামাজের সময় হয়েছে"
   };
 
   const duas = [
@@ -43,58 +38,65 @@ module.exports.onLoad = async function ({ api }) {
     "🤲 اللّهُمَّ ارْزُقْنِي حَلَالًا طَيِّبًا\nহে আল্লাহ, আমাকে হালাল রিযিক দান করুন"
   ];
 
-  const cacheDir = path.join(__dirname, "cache");
-  const filePath = path.join(cacheDir, "azan.mp4");
+  let lastSent = ""; // 🔥 main fix
 
-  if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
-
-  if (!fs.existsSync(filePath)) {
-    const res = await axios({
-      url: "https://files.catbox.moe/gr8zqw.mp4",
-      method: "GET",
-      responseType: "stream"
-    });
-
-    await new Promise((resolve, reject) => {
-      const writer = fs.createWriteStream(filePath);
-      res.data.pipe(writer);
-      writer.on("finish", resolve);
-      writer.on("error", reject);
-    });
-  }
+  console.log("🕌 Prayer Timer Loaded (No Duplicate)...");
 
   const checkPrayer = async () => {
 
-    const now = moment().tz("Asia/Dhaka");
-    const timeKey = now.format("hh:mm A");
-    const dateKey = now.format("DD-MM-YYYY");
+    const now = moment().tz("Asia/Dhaka").format("HH:mm");
 
-    const sendKey = `${dateKey}_${timeKey}`;
+    // 🔥 Only run if new time (main fix)
+    if (prayerTimes[now] && lastSent !== now) {
 
-    // 🔥 IMPORTANT: prevent duplicate send
-    if (prayerTimes[timeKey] && global.prayerTimerState.lastSentKey !== sendKey) {
+      lastSent = now;
 
-      global.prayerTimerState.lastSentKey = sendKey;
+      const timeNow = moment().tz("Asia/Dhaka").format("hh:mm A");
+      const dateNow = moment().tz("Asia/Dhaka").format("DD-MM-YYYY");
 
       const randomDua = duas[Math.floor(Math.random() * duas.length)];
 
       const finalMsg =
 `━━━━━━━━━━━━━━━━━━
-${prayerTimes[timeKey]}
-🕒 সময়: ${timeKey}
-📅 তারিখ: ${dateKey}
+${prayerTimes[now]}
+🕒 সময়: ${timeNow}
+📅 তারিখ: ${dateNow}
 ━━━━━━━━━━━━━━━━━━
 
 📿 দোয়া:
 ${randomDua}
 
 ◢◤━━━━━━━━━━━━━━━━◥◣
+🤖 ʙᴏᴛ ᴏᴡɴᴇʀ:-ᴋᴀᴋᴀsʜɪ
 🤲 সবাই নামাজ আদায় করুন
 ◥◣━━━━━━━━━━━━━━━━◢◤`;
 
       try {
         const allThreads = await api.getThreadList(100, null, ["INBOX"]);
         const groupThreads = allThreads.filter(t => t.isGroup);
+
+        const cacheDir = path.join(__dirname, "cache");
+        const filePath = path.join(cacheDir, "azan.mp4");
+
+        if (!fs.existsSync(cacheDir)) {
+          fs.mkdirSync(cacheDir);
+        }
+
+        // 🎥 download only once
+        if (!fs.existsSync(filePath)) {
+          const res = await axios({
+            url: "https://files.catbox.moe/gr8zqw.mp4",
+            method: "GET",
+            responseType: "stream"
+          });
+
+          await new Promise((resolve, reject) => {
+            const writer = fs.createWriteStream(filePath);
+            res.data.pipe(writer);
+            writer.on("finish", resolve);
+            writer.on("error", reject);
+          });
+        }
 
         for (const thread of groupThreads) {
           await api.sendMessage({
@@ -103,20 +105,20 @@ ${randomDua}
           }, thread.threadID);
         }
 
-        console.log("✅ Prayer message sent once");
+        console.log("✅ নামাজ + দোয়া + আজান পাঠানো হয়েছে");
 
       } catch (err) {
-        console.error("❌ Error:", err);
+        console.error("❌ Prayer Timer Error:", err);
       }
     }
 
-    // 🔄 reset daily at midnight
-    if (now.format("HH:mm") === "00:00") {
-      global.prayerTimerState.lastSentKey = null;
+    // 🔄 reset everyday
+    if (moment().tz("Asia/Dhaka").format("HH:mm") === "00:00") {
+      lastSent = "";
     }
   };
 
-  setInterval(checkPrayer, 30000); // 30s safe interval
+  setInterval(checkPrayer, 15000); // fast but safe
 };
 
 module.exports.onStart = () => {};

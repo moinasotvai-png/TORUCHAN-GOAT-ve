@@ -116,7 +116,7 @@ info
 
 ## ✨ OWNAR PHOTO
 
-![Preview](https://i.imgur.com/oEh5VEx.jpeg)
+![Preview](https://i.imgur.com/6usi1Xf.jpeg)
 
 ---
 

@@ -7,20 +7,22 @@ module.exports = {
   config: {
     name: "balance",
     aliases: ["bal", "টাকা"],
-    version: "5.0",
-    author: "MahMUD + SYSTEM + Sabah",
+    version: "6.5",
+    author: "MahMUD + SYSTEM (Pro Upgrade)",
     countDown: 5,
     role: 0,
-    description: "Realistic ATM Card Balance",
+    description: "Ultra realistic ATM card balance",
     category: "Game"
   },
 
   onStart: async function ({ message, event, usersData }) {
-
     const { senderID } = event;
 
     const banks = [
-      "American Express"
+      "American Express",
+      "Global Trust Bank",
+      "Prime Finance",
+      "Neo Bank LTD"
     ];
 
     const formatMoney = (amount) => {
@@ -35,46 +37,60 @@ module.exports = {
     };
 
     const createCard = async (name, balance) => {
-
       const width = 900;
       const height = 520;
 
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext("2d");
 
-      // ===== REALISTIC GRADIENT BACKGROUND =====
+      // ===== BACKGROUND =====
       const bg = ctx.createLinearGradient(0, 0, width, height);
-      bg.addColorStop(0, "#0f2027");
-      bg.addColorStop(0.5, "#203a43");
-      bg.addColorStop(1, "#2c5364");
+      bg.addColorStop(0, "#050816");
+      bg.addColorStop(0.5, "#0f172a");
+      bg.addColorStop(1, "#020617");
 
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, width, height);
 
-      // subtle texture dots
-      ctx.globalAlpha = 0.05;
-      for (let i = 0; i < 3000; i++) {
-        ctx.fillStyle = "white";
-        ctx.fillRect(Math.random() * width, Math.random() * height, 1, 1);
-      }
-      ctx.globalAlpha = 1;
+      // ===== BORDER GLOW =====
+      ctx.strokeStyle = "rgba(0,255,255,0.15)";
+      ctx.lineWidth = 6;
+      ctx.strokeRect(25, 25, width - 50, height - 50);
 
-      // ===== RANDOM BANK NAME =====
+      // ===== GLASS EFFECT =====
+      const glass = ctx.createLinearGradient(0, 0, width, height);
+      glass.addColorStop(0, "rgba(255,255,255,0.10)");
+      glass.addColorStop(0.5, "rgba(255,255,255,0.03)");
+      glass.addColorStop(1, "rgba(0,0,0,0.25)");
+
+      ctx.fillStyle = glass;
+      ctx.fillRect(0, 0, width, height);
+
+      // ===== BANK NAME =====
       const bankName = banks[Math.floor(Math.random() * banks.length)];
 
-      ctx.font = "bold 42px Sans";
+      ctx.font = "bold 40px Arial";
       ctx.fillStyle = "#ffffff";
-      ctx.fillText(bankName, 60, 80);
+      ctx.shadowColor = "rgba(0,0,0,0.7)";
+      ctx.shadowBlur = 10;
+      ctx.fillText(bankName.toUpperCase(), 60, 85);
+      ctx.shadowBlur = 0;
 
       // ===== CHIP =====
-      ctx.fillStyle = "#d4af37";
+      const chipGrad = ctx.createLinearGradient(60, 160, 180, 240);
+      chipGrad.addColorStop(0, "#f9d976");
+      chipGrad.addColorStop(0.5, "#d4af37");
+      chipGrad.addColorStop(1, "#8c6b1a");
+
+      ctx.fillStyle = chipGrad;
       ctx.fillRect(60, 160, 120, 80);
 
-      ctx.strokeStyle = "#a8892a";
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(0,0,0,0.3)";
       ctx.strokeRect(60, 160, 120, 80);
 
+      // chip lines
       ctx.beginPath();
+      ctx.strokeStyle = "rgba(0,0,0,0.4)";
       ctx.moveTo(60, 190);
       ctx.lineTo(180, 190);
       ctx.moveTo(60, 210);
@@ -90,55 +106,66 @@ module.exports = {
         " " +
         Math.floor(Math.random() * 9000 + 1000);
 
-      ctx.font = "bold 44px monospace";
-      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 42px monospace";
 
-      ctx.shadowColor = "#00eaff";
-      ctx.shadowBlur = 25;
-
-      ctx.fillText(cardNumber, 60, 320);
+      ctx.fillStyle = "rgba(0,0,0,0.8)";
+      ctx.shadowColor = "rgba(0,0,0,0.8)";
+      ctx.shadowBlur = 8;
+      ctx.fillText(cardNumber, 62, 322);
 
       ctx.shadowBlur = 0;
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.fillText(cardNumber, 60, 320);
 
       // ===== NAME =====
-      ctx.font = "bold 36px Sans";
-      ctx.fillStyle = "#00eaff";
+      ctx.font = "bold 32px Arial";
+      ctx.fillStyle = "#38bdf8";
       ctx.fillText(name.toUpperCase(), 60, 430);
 
-      // ===== EXPIRY =====
+      // ===== EXPIRY + BALANCE RIGHT SIDE ALIGN =====
       const date = new Date();
       const expiry = `${date.getMonth() + 1}/${(date.getFullYear() + 4)
         .toString()
         .slice(-2)}`;
 
-      ctx.font = "28px Sans";
-      ctx.fillStyle = "#ffd700";
-      ctx.fillText("EXP " + expiry, 650, 350);
+      // VALID THRU label
+      ctx.font = "22px Arial";
+      ctx.fillStyle = "#facc15";
+      ctx.fillText("VALID THRU", 620, 330);
 
-      // ===== BALANCE =====
-      ctx.font = "bold 40px Sans";
-      ctx.fillStyle = "#00ff9d";
+      // expiry date
+      ctx.font = "26px Arial";
+      ctx.fillText(expiry, 620, 360);
 
-      ctx.shadowColor = "#00ff9d";
-      ctx.shadowBlur = 30;
-
-      ctx.fillText(`Balance: ${formatMoney(balance)} $`, 520, 460);
-
+      // BALANCE directly under expiry
+      ctx.font = "bold 38px Arial";
+      ctx.fillStyle = "#22c55e";
+      ctx.shadowColor = "rgba(34,197,94,0.6)";
+      ctx.shadowBlur = 18;
+      ctx.fillText(`$ ${formatMoney(balance)}`, 620, 430);
       ctx.shadowBlur = 0;
 
-      // ===== MASTERCARD STYLE LOGO =====
+      // ===== LOGO =====
       ctx.globalAlpha = 0.9;
 
       ctx.beginPath();
-      ctx.fillStyle = "#EB001B";
+      ctx.fillStyle = "#ff3b30";
       ctx.arc(760, 110, 45, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.beginPath();
-      ctx.fillStyle = "#F79E1B";
+      ctx.fillStyle = "#ff9500";
       ctx.arc(810, 110, 45, 0, Math.PI * 2);
       ctx.fill();
 
+      ctx.globalAlpha = 1;
+
+      // ===== NOISE =====
+      ctx.globalAlpha = 0.04;
+      for (let i = 0; i < 5000; i++) {
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(Math.random() * width, Math.random() * height, 1, 1);
+      }
       ctx.globalAlpha = 1;
 
       // ===== SAVE =====
@@ -153,12 +180,12 @@ module.exports = {
 
     const userMoney = money.get(senderID) || 0;
     const userData = await usersData.get(senderID);
-    const name = userData.name || "User";
+    const name = userData?.name || "USER";
 
     const img = await createCard(name, userMoney);
 
     return message.reply({
-      body: "💳 Your ATM Card",
+      body: "💳 YOUR PREMIUM ATM CARD",
       attachment: fs.createReadStream(img)
     });
   }

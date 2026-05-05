@@ -115,7 +115,7 @@ module.exports = {
 💠 Bot Prefix: ${BOTPREFIX}
 💬 Group Prefix: ${GROUPPREFIX}
 🤖 Bot Name: ${BOTNAME}
-🌟╚═༶• END •༶═╝🌟`,
+🌟╚═════༶• END •༶════╝🌟`,
 
 `╭━• PREFIX STATUS •━╮
 ⏱ Ping: ${ping}ms
@@ -123,15 +123,15 @@ module.exports = {
 🔹 Bot Prefix: ${BOTPREFIX}
 🔹 Group Prefix: ${GROUPPREFIX}
 🤖 Bot: ${BOTNAME}
-╰━━━━━━━━━━━━╯`,
+╰━━━━━━━━━━━━━━━━╯`,
 
 `┏━ PREFIX INFO ━┓
-🕒 ${ping}ms
-📅 ${day}
-💠 ${BOTPREFIX}
-💬 ${GROUPPREFIX}
-🤖 ${BOTNAME}
-┗━━━━━━━━━━━━┛`,
+🕒 Ping: ${ping}ms
+📅 Date: ${day}
+💠 Bot Prefix: ${BOTPREFIX}
+💬 Group Prefix: ${GROUPPREFIX}
+🤖 Bot:${BOTNAME}
+┗━━━━━━━━━━━━━┛`,
       
 `▸▸▸ 𝗣𝗥𝗘𝗙𝗜𝗫 𝗦𝗧𝗔𝗧𝗨𝗦 ◂◂◂
 Ping: ${ping}ms

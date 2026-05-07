@@ -25,7 +25,7 @@ module.exports = {
     const { body } = event;
 
     // === ON / OFF COMMAND HANDLING ===
-    if (body.toLowerCase().startsWith(".emojivoice")) {
+    if (body.toLowerCase().startsWith("emojivoice")) {
       const commandArgs = body.slice(11).trim().toLowerCase();
 
       if (commandArgs === "on") {

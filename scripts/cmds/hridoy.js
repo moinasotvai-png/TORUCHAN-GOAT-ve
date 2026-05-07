@@ -4,7 +4,7 @@ const path = require("path");
 
 module.exports = {
   config: {
-    name: "Hridoy",
+    name: "hridoy",
     version: "2.0",
     author: "Hridoy",
     role: 0,

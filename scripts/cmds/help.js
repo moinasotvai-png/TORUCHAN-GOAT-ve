@@ -75,7 +75,11 @@ module.exports = {
 
     for (let i = 1; i < loadingFrames.length; i++) {
       await new Promise(res => setTimeout(res, 400));
-      await api.editMessage(loadingFrames[i], loadingMsg.messageID);
+      try {
+        await api.editMessage(loadingFrames[i], loadingMsg.messageID);
+      } catch (e) {
+        // ignore error (fix for "message too old or not from you")
+      }
     }
 
     // ===== BUILD HELP TEXT (ADVANCED STYLE) =====
@@ -99,7 +103,6 @@ module.exports = {
 
       msg += `╰━━━━━━━━━━━━━━━━━━━⬣\n\n`;
     }
- ;
 
     msg += `╭━━━〔 👑 𝐁𝐎𝐓 𝐈𝐍𝐅𝐎 〕━━━⬣\n`;
     msg += `┃ 👤 𝐀𝐝𝐦𝐢𝐧 : Kakashi Hatake Hatake\n`;
@@ -109,7 +112,7 @@ module.exports = {
 
     // ===== RANDOM GIF =====
     const gifURLs = [
-           "https://i.imgur.com/zex8uo7.gif",
+      "https://i.imgur.com/zex8uo7.gif",
       "https://i.imgur.com/4ki8eBI.gif",
       "https://i.imgur.com/AMKQCJc.gif",
       "https://i.imgur.com/rkjO7YV.gif",
@@ -118,8 +121,8 @@ module.exports = {
       "https://i.imgur.com/KUFxWlF.gif",
       "https://i.imgur.com/FV9krHV.gif",
       "https://i.imgur.com/lFrFMEn.gif",
-     "https://i.imgur.com/KrEez4A.gif" 
-   ];
+      "https://i.imgur.com/KrEez4A.gif"
+    ];
 
     const randomGifURL = gifURLs[Math.floor(Math.random() * gifURLs.length)];
     const gifFolder = path.join(__dirname, "cache");

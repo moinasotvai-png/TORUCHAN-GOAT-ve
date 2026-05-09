@@ -1,29 +1,3 @@
-// 🔐 AUTHOR LOCK SYSTEM (ULTRA PROTECT)
-const AUTHOR_NAME = "FARHAN-KHAN";
-
-(function () {
-  const fs = require("fs");
-
-  try {
-    const fileData = fs.readFileSync(__filename, "utf-8");
-
-    if (
-      !fileData.includes(`author: "${AUTHOR_NAME}"`) ||
-      !fileData.includes(`name: "kola"`) ||
-      !fileData.includes(`🥰`) ||
-      !fileData.includes(`kola_milon_`)
-    ) {
-      console.error("❌ FILE TAMPERED! LOCK ACTIVATED.");
-      process.exit(1);
-    }
-  } catch (err) {
-    console.error("❌ LOCK ERROR:", err);
-    process.exit(1);
-  }
-})();
-
-// ================================
-
 const axios = require("axios");
 const fs = require("fs-extra");
 const path = require("path");
@@ -32,8 +6,8 @@ const { createCanvas, loadImage } = require("canvas");
 module.exports = {
   config: {
     name: "kola",
-    version: "2.9.2",
-    author: "FARHAN-KHAN",
+    version: "3.0.0",
+    author: "Hridoy", // change if needed
     countDown: 5,
     role: 0,
     category: "Tag Fun",
@@ -43,13 +17,6 @@ module.exports = {
       en: "kola @mention or reply"
     }
   },
-
-/* --- [ 🔐 FILE_CREATOR_INFORMATION ] ---
- * 🤖 BOT NAME: SIZUKA BOT
- * 👤 OWNER: FARHAN KHAN 
- * 📍 LOCATION: CHUADANGA, BANGLADESH
- * 🛠️ PROJECT: FARHAN BOT PROJECT (2026)
- * --------------------------------------- */
 
   // ================================
   // 🔥 ADMIN WITHOUT PREFIX SYSTEM
@@ -62,13 +29,13 @@ module.exports = {
     const isBotAdmin = adminIDs.includes(senderID);
     const args = body.toLowerCase().split(" ");
 
-    if (isBotAdmin && (args[0] === "kola")) {
+    if (isBotAdmin && args[0] === "kola") {
       return this.onStart({ api, event, message, commandName });
     }
   },
 
   // ================================
-  // 🎯 MAIN COMMAND START
+  // 🎯 MAIN COMMAND
   // ================================
   onStart: async function ({ api, event, message }) {
     const { threadID, messageID, mentions, messageReply } = event;
@@ -80,11 +47,9 @@ module.exports = {
 
     if (Object.keys(mentions).length > 0) {
       targetID = Object.keys(mentions)[0];
-    } 
-    else if (messageReply) {
+    } else if (messageReply) {
       targetID = messageReply.senderID;
-    } 
-    else {
+    } else {
       targetID = event.senderID;
     }
 
@@ -94,12 +59,12 @@ module.exports = {
       const userInfo = await api.getUserInfo(targetID);
       const userName = userInfo[targetID]?.name || "User";
 
-      // 🔥 BASE IMAGE (LOCKED)
-      const imgLink = "https://i.imgur.com/iNV52mX.jpeg"; 
+      // 🖼 BASE IMAGE
+      const imgLink = "https://i.imgur.com/iNV52mX.jpeg";
 
-      const filePath = path.join(cacheDir, `kola_milon_${Date.now()}.png`);
+      const filePath = path.join(cacheDir, `kola_${Date.now()}.png`);
 
-      // 🔒 PROFILE FETCH
+      // 👤 PROFILE FETCH
       const accessToken = "6628568379|c1e620fa708a1d5696fb991c1bde5662";
       const targetPfpUrl = `https://graph.facebook.com/${targetID}/picture?width=512&height=512&access_token=${accessToken}`;
 
@@ -111,14 +76,16 @@ module.exports = {
       const canvas = createCanvas(baseImage.width, baseImage.height);
       const ctx = canvas.getContext("2d");
 
+      // 🖌 Draw base
       ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
 
-      // 📐 POSITION (LOCKED)
+      // 📐 Position
       const pfpWidth = 130;
       const pfpHeight = 170;
       const x = (canvas.width / 2) - (pfpWidth / 2) + 25;
       const y = (canvas.height / 2) - (pfpHeight / 2) - 110;
 
+      // ✂️ Ellipse crop
       ctx.save();
       ctx.beginPath();
       ctx.ellipse(
@@ -136,7 +103,7 @@ module.exports = {
       ctx.drawImage(targetPfp, x, y, pfpWidth, pfpHeight);
       ctx.restore();
 
-      // 🔵 BORDER
+      // 🔵 Border
       ctx.beginPath();
       ctx.ellipse(
         x + pfpWidth / 2,
@@ -151,12 +118,13 @@ module.exports = {
       ctx.strokeStyle = "#ffffff";
       ctx.stroke();
 
+      // 💾 Save
       const buffer = canvas.toBuffer("image/png");
       fs.writeFileSync(filePath, buffer);
 
       api.setMessageReaction("✅", messageID, () => {}, true);
 
-      // 😈 FUNNY CAPTION (LOCKED)
+      // 😂 Caption
       const finalCaption =
 `ঐ দেখ মামা, এরে চিনতে পারস কি না! 😂
 

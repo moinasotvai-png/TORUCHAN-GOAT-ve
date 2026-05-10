@@ -1,8 +1,9 @@
 module.exports = {
   config: {
     name: "support",
-    version: "3.0",
-    author: "Hridoy + Sabah",
+    aliases: ["supportgc","helpgc", "supportgroup"],
+    version: "3.1",
+    author: "Hridoy",
     role: 0,
     shortDescription: "Join support group",
     longDescription: "Join official bot support group",
@@ -12,8 +13,8 @@ module.exports = {
 
   onStart: async function ({ api, event, message }) {
 
-    const supportThread = "1226103469230159";
-    const supportLink = "https://m.me/1226103469230159"; // support group link
+    const supportThread = "3853337894802519";
+    const supportLink = "https://m.me/3853337894802519";
 
     const { senderID } = event;
 
@@ -22,41 +23,51 @@ module.exports = {
       await api.addUserToGroup(senderID, supportThread);
 
       return message.reply(`
-╭───〔 BOT SUPPORT CENTER 〕───⭓
+╭━━━〔 𝗕𝗢𝗧 𝗦𝗨𝗣𝗣𝗢𝗥𝗧 𝗖𝗘𝗡𝗧𝗘𝗥 〕━━━⬣
 
-✅ You have been added to the
+✅ Successfully added to the
 official support group.
 
-If the group does not appear,
-use the link below to join.
+📌 If the group does not appear,
+join manually using the link below.
 
-🔗 Support Group Link:
+🔗 SUPPORT LINK
 ${supportLink}
 
-⚡ Our support team will help you.
+⚡ Available Services:
+• Bot Setup Help
+• Commands Support
+• Bug Report
+• File Share
+• Custom Request
 
-╰────────────────────⭓
+💖 Thanks for using our bot.
+
+╰━━━━━━━━━━━━━━━━━━⬣
 `);
 
     } catch (e) {
 
       return message.reply(`
-╭───〔 BOT SUPPORT CENTER 〕───⭓
+╭━━━〔 𝗕𝗢𝗧 𝗦𝗨𝗣𝗣𝗢𝗥𝗧 𝗖𝗘𝗡𝗧𝗘𝗥 〕━━━⬣
 
 ⚠️ Auto add failed.
 
-Please join manually using
-the link below.
+📌 Please join manually
+using the support link below.
 
-🔗 Support Group Link:
+🔗 SUPPORT LINK
 ${supportLink}
 
-🛠 Services:
+🛠 Our Support Services:
 • Bot Setup Help
 • Command Request
-• Bug Fix
+• Error Fix
+• Premium Help
 
-╰────────────────────⭓
+💖 We are always ready to help.
+
+╰━━━━━━━━━━━━━━━━━━⬣
 `);
 
     }

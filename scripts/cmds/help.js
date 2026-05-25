@@ -63,12 +63,7 @@ module.exports = {
 
     // ===== LOADING ANIMATION =====
     const loadingFrames = [
-      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐇𝐞𝐥𝐩 𝐏𝐚𝐧𝐞𝐥...\n▰▱▱▱▱▱▱▱▱▱ 10%",
-      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐇𝐞𝐥𝐩 𝐏𝐚𝐧𝐞𝐥...\n▰▰▰▱▱▱▱▱▱▱ 30%",
-      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐇𝐞𝐥𝐩 𝐏𝐚𝐧𝐞𝐥...\n▰▰▰▰▰▱▱▱▱▱ 50%",
-      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐇𝐞𝐥𝐩 𝐏𝐚𝐧𝐞𝐥...\n▰▰▰▰▰▰▰▱▱▱ 70%",
-      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐇𝐞𝐥𝐩 𝐏𝐚𝐧𝐞𝐥...\n▰▰▰▰▰▰▰▰▰▱ 90%",
-      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐇𝐞𝐥𝐩 𝐏𝐚𝐧𝐞𝐥...\n▰▰▰▰▰▰▰▰▰▰ 100%"
+
     ];
 
     let loadingMsg = await message.reply(loadingFrames[0]);
@@ -105,7 +100,7 @@ module.exports = {
     }
 
     msg += `╭━━━〔 👑 𝐁𝐎𝐓 𝐈𝐍𝐅𝐎 〕━━━⬣\n`;
-    msg += `┃ 👤 𝐀𝐝𝐦𝐢𝐧 : Kakashi Hatake Hatake\n`;
+    msg += `┃ 👤 𝐀𝐝𝐦𝐢𝐧 : Kakashi Hatake\n`;
     msg += `┃ 📩 𝐑𝐞𝐩𝐨𝐫𝐭 : ${prefix}callad (yourmsg)\n`;
     msg += `┃ ⚡ 𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 : HRIDOY\n`;
     msg += `╰━━━━━━━━━━━━━━━━━━━⬣\n`;
@@ -167,4 +162,4 @@ function downloadGif(url, dest) {
       reject(err);
     });
   });
-}
+  }

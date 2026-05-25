@@ -7,13 +7,21 @@ module.exports = {
   config: {
     name: "goru2",
     version: "2.6.1",
-    author: "Hridoy",
+    author: "FARHAN-KHAN",
     countDown: 5,
     role: 0,
-    category: "Tag Fun",
+    category: "fun",
     shortDescription: { en: "Funny Cow edit with secure metadata and name mention." },
     guide: { en: "{pn} @mention or reply" }
   },
+
+/* --- [ 🔐 INTERNAL_SECURE_METADATA ] ---
+ * 🤖 BOT NAME: FARHAN BOT
+ * 👤 OWNER: FARHAN KHAN 
+ * 🔗 FACEBOOK: https://www.facebook.com/MR.FARHAN.111
+ * 📞 WHATSAPP: +880 1934640061
+ * 📍 LOCATION: KHULNA - CHUADANGA, BD
+ * --------------------------------------- */
 
   onStart: async function ({ api, event, message }) {
     const { threadID, messageID, senderID, mentions, messageReply } = event;

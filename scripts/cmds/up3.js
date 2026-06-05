@@ -3,10 +3,25 @@ const os = require("os");
 const fs = require("fs");
 const path = require("path");
 
+// ===== SAFE ROUND RECT =====
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
 module.exports = {
   config: {
     name: "up3",
-    aliases: ["upx","uptime3"],
+    aliases: ["upx", "uptime3"],
     version: "5.5",
     author: "Hridoy",
     role: 0,
@@ -34,7 +49,7 @@ module.exports = {
       for (let i = 0; i < 120; i++) {
         ctx.fillStyle = "rgba(0,255,255,0.08)";
         ctx.beginPath();
-        ctx.arc(Math.random()*width, Math.random()*height, Math.random()*2, 0, Math.PI*2);
+        ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 2, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -57,7 +72,7 @@ module.exports = {
       const m = Math.floor((uptime % 3600) / 60);
       const s = Math.floor(uptime % 60);
 
-      // ===== CENTER TITLE =====
+      // ===== TITLE =====
       ctx.fillStyle = "#00eaff";
       ctx.font = "bold 52px Sans";
       ctx.textAlign = "center";
@@ -66,10 +81,9 @@ module.exports = {
       ctx.fillText("⚡ TORU CHAN UPTIME ⚡", width / 2, 80);
       ctx.shadowBlur = 0;
 
-      // ===== GLASS BOX =====
+      // ===== BOX =====
       function box(x, y, w, h) {
-        ctx.beginPath();
-        ctx.roundRect(x, y, w, h, 20);
+        roundRect(ctx, x, y, w, h, 20);
         ctx.fillStyle = "rgba(255,255,255,0.04)";
         ctx.fill();
 
@@ -77,36 +91,32 @@ module.exports = {
         ctx.stroke();
       }
 
-      // ===== LINE BAR =====
+      // ===== BAR =====
       function lineBar(x, y, w, percent, label) {
         const grad = ctx.createLinearGradient(x, y, x + w, y);
         grad.addColorStop(0, "#00eaff");
         grad.addColorStop(1, "#00ff9c");
 
-        // background line
-        ctx.beginPath();
-        ctx.roundRect(x, y, w, 18, 10);
+        roundRect(ctx, x, y, w, 18, 10);
         ctx.fillStyle = "rgba(255,255,255,0.08)";
         ctx.fill();
 
-        // progress
+        const fillW = (w * percent) / 100;
+
         ctx.shadowColor = "#00eaff";
         ctx.shadowBlur = 15;
+        roundRect(ctx, x, y, fillW, 18, 10);
         ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.roundRect(x, y, (w * percent) / 100, 18, 10);
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // text
         ctx.fillStyle = "#fff";
         ctx.font = "20px Sans";
         ctx.fillText(label, x, y - 10);
-
         ctx.fillText(percent + "%", x + w - 60, y + 15);
       }
 
-      // ===== LEFT PANEL =====
+      // ===== LEFT =====
       box(50, 140, 320, 400);
 
       ctx.textAlign = "left";
@@ -114,7 +124,7 @@ module.exports = {
       ctx.font = "26px Sans";
       ctx.fillText("SYSTEM INFO", 90, 190);
 
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "#fff";
       ctx.font = "22px Sans";
       ctx.fillText("OS: " + os.platform(), 90, 240);
       ctx.fillText("CPU: " + cpu + "%", 90, 280);
@@ -124,7 +134,7 @@ module.exports = {
       ctx.fillText("UPTIME", 90, 380);
       ctx.fillText(`${d}d ${h}h ${m}m ${s}s`, 90, 420);
 
-      // ===== RIGHT PANEL =====
+      // ===== RIGHT =====
       box(400, 160, 820, 350);
 
       lineBar(450, 240, 700, cpu, "CPU Usage");
@@ -137,13 +147,19 @@ module.exports = {
       ctx.font = "22px Sans";
       ctx.fillText("⚡ Hridoy's Ultra Engine • Performance Mode", width / 2, 640);
 
+      // ===== SAVE IMAGE =====
       const filePath = path.join(__dirname, "uptime_line_pro.png");
-      fs.writeFileSync(filePath, canvas.toBuffer());
+      const buffer = canvas.toBuffer("image/png");
 
-      return message.reply({
-        body: "UI Dashboard Ready!",
-        attachment: fs.createReadStream(filePath)
-      });
+      fs.writeFileSync(filePath, buffer);
+
+      // IMPORTANT: delay to avoid stream crash
+      setTimeout(() => {
+        return message.reply({
+          body: "UI Dashboard Ready!",
+          attachment: fs.createReadStream(filePath)
+        });
+      }, 300);
 
     } catch (e) {
       console.log(e);

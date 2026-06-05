@@ -4,8 +4,8 @@ const { client } = global;
 
 module.exports = {
   config: {
-    name: "whitelist",
-    aliases: ["wl"],
+    name: "wl",
+    aliases: ["whitelist"],
     version: "1.0",
     author: "Kakashi",
     role: 3, // adminBot only

@@ -7,7 +7,7 @@ module.exports = {
 		role: 1,
 		description: {
 			vi: "Chỉnh sửa role của lệnh (những lệnh có role < 2)",
-			en: "Edit role of command (commands with role < 2)"
+			en: "setrole command name role"
 		},
 		category: "Admin",
 		guide: {

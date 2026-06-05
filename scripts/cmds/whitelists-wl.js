@@ -5,7 +5,7 @@ const { client } = global;
 module.exports = {
 	config: {
 		name: "whitelists",
-		aliases: ["wl"],
+		aliases: [""],
 		version: "1.5",
 		author: "NTKhang",
 		countDown: 5,

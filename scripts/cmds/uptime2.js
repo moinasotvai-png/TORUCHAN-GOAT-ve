@@ -5,15 +5,36 @@ const os = require("os");
 
 const processStartTime = Date.now();
 
-// ===== DOWNLOAD FUNCTION =====
-function downloadGif(url, dest) {
+// ===== CPU USAGE =====
+function getCpuUsage() {
+  const start = process.cpuUsage();
+  const startTime = process.hrtime();
+
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const elap = process.hrtime(startTime);
+      const end = process.cpuUsage(start);
+
+      const elapsedMicros = elap[0] * 1e6 + elap[1] / 1e3;
+      const cpuPercent = ((end.user + end.system) / elapsedMicros) * 100;
+
+      resolve(cpuPercent.toFixed(2));
+    }, 300);
+  });
+}
+
+// ===== DOWNLOAD =====
+function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(dest);
-    https.get(url, response => {
-      response.pipe(file);
+
+    https.get(url, (res) => {
+      if (res.statusCode !== 200) return reject(new Error("Download failed"));
+      res.pipe(file);
+
       file.on("finish", () => file.close(resolve));
-    }).on("error", err => {
-      fs.unlink(dest, () => {});
+    }).on("error", (err) => {
+      try { fs.unlinkSync(dest); } catch {}
       reject(err);
     });
   });
@@ -23,70 +44,75 @@ module.exports = {
   config: {
     name: "uptime2",
     aliases: ["botstats2"],
-    version: "1.0",
+    version: "3.0",
     role: 0,
     author: "Hridoy",
     category: "Utility",
-    description: "Display bot uptime + stats with random GIF",
-    guide: "{pn}uptime"
+    description: "Advanced full system stats dashboard",
+    guide: "{pn}uptime2"
   },
 
-  onStart: async function({ message, api, usersData, threadsData }) {
+  onStart: async function ({ message, api, usersData, threadsData }) {
     try {
-      // ===== LOADING ANIMATION =====
-      const loadingFrames = [
-        "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐔𝐩𝐭𝐢𝐦𝐞...\n▰▱▱▱▱▱▱▱▱▱ 10%",
-        "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐔𝐩𝐭𝐢𝐦𝐞...\n▰▰▰▱▱▱▱▱▱▱ 30%",
-        "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐔𝐩𝐭𝐢𝐦𝐞...\n▰▰▰▰▰▱▱▱▱▱ 50%",
-        "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐔𝐩𝐭𝐢𝐦𝐞...\n▰▰▰▰▰▰▰▱▱▱ 70%",
-        "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐔𝐩𝐭𝐢𝐦𝐞...\n▰▰▰▰▰▰▰▰▰▱ 90%",
-        "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐔𝐩𝐭𝐢𝐦𝐞...\n▰▰▰▰▰▰▰▰▰▰ 100%"
-      ];
 
-      let loadingMsg = await message.reply(loadingFrames[0]);
-      for (let i = 1; i < loadingFrames.length; i++) {
-        await new Promise(res => setTimeout(res, 400));
-        await api.editMessage(loadingFrames[i], loadingMsg.messageID);
-      }
+      const cpuUsage = await getCpuUsage();
 
-      // ===== BOT STATS =====
       const allUsers = await usersData.getAll();
       const allThreads = await threadsData.getAll();
+
       const uptime = process.uptime();
 
-      const days = Math.floor(uptime / (60*60*24));
-      const hours = Math.floor((uptime % (60*60*24)) / 3600);
+      const days = Math.floor(uptime / 86400);
+      const hours = Math.floor((uptime % 86400) / 3600);
       const minutes = Math.floor((uptime % 3600) / 60);
       const seconds = Math.floor(uptime % 60);
 
       const uptimeString = `${days}D ${hours}H ${minutes}M ${seconds}S`;
-      const startTime = new Date(processStartTime).toLocaleString();
 
       const cpuModel = os.cpus()[0].model;
-      const cpuCount = os.cpus().length;
-      const totalMem = (os.totalmem()/1024/1024).toFixed(0);
-      const freeMem = (os.freemem()/1024/1024).toFixed(0);
-      const memUsage = ((1 - os.freemem()/os.totalmem())*100).toFixed(2);
+      const cores = os.cpus().length;
 
-      const threadCount = allThreads.length;
-      const userCount = allUsers.length;
+      const totalMem = os.totalmem() / 1024 / 1024;
+      const freeMem = os.freemem() / 1024 / 1024;
+      const usedMem = totalMem - freeMem;
 
-      const msg = 
-`╭─🌟 𝐁𝐎𝐓 𝐒𝐓𝐀𝐓𝐒
+      const memPercent = ((usedMem / totalMem) * 100).toFixed(2);
+
+      const platform = os.platform();
+      const arch = os.arch();
+      const loadAvg = os.loadavg()[0].toFixed(2);
+
+      const nodeVersion = process.version;
+      const pid = process.pid;
+
+      const msg =
+`╭─🌟 𝐁𝐎𝐓 𝐃𝐀𝐒𝐇𝐁𝐎𝐀𝐑𝐃
 │
 ├⏱️ Uptime: ${uptimeString}
-├📅 Start Time: ${startTime}
-├👥 Total Users: ${userCount.toLocaleString()}
-├💬 Total Groups: ${threadCount.toLocaleString()}
+├📅 Start Time: ${new Date(processStartTime).toLocaleString()}
 │
-├💻 CPU: ${cpuModel} (${cpuCount} cores)
-├🖥️ RAM: ${freeMem}MB free / ${totalMem}MB total (${memUsage}% used)
-├🌐 Platform: ${os.platform()} ${os.arch()}
+├👥 Users: ${allUsers.length.toLocaleString()}
+├💬 Groups: ${allThreads.length.toLocaleString()}
+│
+├💻 CPU Model: ${cpuModel}
+├⚙️ CPU Cores: ${cores}
+├📊 CPU Usage: ${cpuUsage}%
+├📈 Load Average: ${loadAvg}
+│
+├🖥️ RAM Total: ${totalMem.toFixed(0)} MB
+├🟢 RAM Free: ${freeMem.toFixed(0)} MB
+├🔴 RAM Used: ${usedMem.toFixed(0)} MB (${memPercent}%)
+│
+├🌐 Platform: ${platform} (${arch})
+├🟣 Node Version: ${nodeVersion}
+├🆔 Process ID: ${pid}
+│
+├🔥 Status: ${cpuUsage < 40 ? "Stable 🟢" : cpuUsage < 75 ? "Moderate 🟡" : "High Load 🔴"}
 ╰───────────────◉`;
 
-      // ===== RANDOM GIF =====
-      const gifURLs = [
-  "https://i.imgur.com/KWbXV92.jpeg",
+      // ===== MEDIA =====
+      const media = [
+   "https://i.imgur.com/KWbXV92.jpeg",
   "https://i.imgur.com/5FY4ZBC.jpeg",
   "https://i.imgur.com/1upcLBv.jpeg",
   "https://i.imgur.com/pHbsaM5.jpeg",
@@ -97,31 +123,25 @@ module.exports = {
   "https://i.imgur.com/P8gi4k8.jpeg"
       ];
 
-      const randomGifURL = gifURLs[Math.floor(Math.random() * gifURLs.length)];
-      const gifFolder = path.join(__dirname, "cache");
+      const url = media[Math.floor(Math.random() * media.length)];
 
-      if (!fs.existsSync(gifFolder)) fs.mkdirSync(gifFolder, { recursive: true });
+      const cacheDir = path.join(__dirname, "cache");
+      if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
 
-      const gifName = path.basename(randomGifURL);
-      const gifPath = path.join(gifFolder, gifName);
+      const filePath = path.join(cacheDir, path.basename(url));
 
-      if (!fs.existsSync(gifPath)) await downloadGif(randomGifURL, gifPath);
+      if (!fs.existsSync(filePath)) {
+        await downloadFile(url, filePath);
+      }
 
-      // ===== REMOVE LOADING =====
-      await api.unsendMessage(loadingMsg.messageID);
-
-      // ===== SEND FINAL MESSAGE + GIF =====
-      const sent = await message.reply({
+      return message.reply({
         body: msg,
-        attachment: fs.createReadStream(gifPath)
+        attachment: fs.createReadStream(filePath)
       });
-
-      // ===== OPTIONAL AUTO DELETE AFTER 30s =====
-      setTimeout(() => api.unsendMessage(sent.messageID), 30000);
 
     } catch (err) {
       console.error(err);
-      await message.reply("❌ Error occurred while retrieving uptime stats.");
+      return message.reply("❌ Failed to load detailed uptime dashboard.");
     }
   }
 };

@@ -18,7 +18,7 @@ module.exports = {
     version: "1.7",
     author: "MahMUD",
     role: 0,
-    category: "Utility",
+    category: "Tag Fun",
     cooldown: 10,
     guide: "stonk [mention-reply-UID]",
   },

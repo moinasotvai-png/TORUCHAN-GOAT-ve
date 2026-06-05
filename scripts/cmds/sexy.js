@@ -1,46 +1,44 @@
+const axios = require("axios");
+
 module.exports = {
   config: {
     name: "sexy",
-    version: "7.0",
-    author: "BAYJID",
+    version: "1.0.0",
+    author: "Hridoy",
     countDown: 5,
-    role: 0,
-    shortDescription: "all video ðŸ“·",
-    longDescription: "",
+    role: 2,
+    shortDescription: {
+      en: "Random Sexy / Ero Image"
+    },
+    longDescription: {
+      en: "Send random NSFW sexy (ero) image from waifu.im"
+    },
     category: "NSFW",
-    guide: "{pn}"
+    guide: {
+      en: "{pn}"
+    }
   },
-   onStart: async function ({ message }) {
-   var BAYJID= ["https://i.imgur.com/FbnZI40.mp4",
-"https://i.imgur.com/E9gbTEZ.mp4",
-"https://i.imgur.com/17nXn9K.mp4",
-"https://i.imgur.com/nj23cCe.mp4",
-"https://i.imgur.com/lMpmBFb.mp4",
-"https://i.imgur.com/85iuBp2.mp4",
-"https://i.imgur.com/E9gbTEZ.mp4",
-"https://i.imgur.com/R3XHTby.mp4",
-"https://i.imgur.com/qX2HUXp.mp4",
-"https://i.imgur.com/R3XHTby.mp4",
-"https://i.imgur.com/MYn0ese.mp4",
- "https://i.imgur.com/yipoKec.mp4",
-"https://i.imgur.com/0tFSIWT.mp4",
-"https://i.imgur.com/BzP6eD8.mp4",
-"https://i.imgur.com/aDlwRWy.mp4",
-"https://i.imgur.com/l3c86M3.mp4",
-"https://i.imgur.com/lfjT7bx.mp4",
-"https://i.imgur.com/Zp5sci1.mp4",
-"https://i.imgur.com/S6rHOc1.mp4",
-"https://i.imgur.com/cAHRfq3.mp4",
-"https://i.imgur.com/zzqEWkN.mp4",
-"https://i.imgur.com/fL1igWD.mp4",
-"https://i.imgur.com/ZRt0bGT.mp4",
-"https://i.imgur.com/fAKWP0W.mp4",
-"https://i.imgur.com/FbnZI40.mp4",
-]
 
-let msg = BAYJID[Math.floor(Math.random()*BAYJID.length)]
-message.send({
-  body: 'sex😻',attachment: await global.utils.getStreamFromURL(msg)
-})
-}
-     }
+  onStart: async function ({ message }) {
+    try {
+      const apiUrl = "https://api.waifu.im/images?IncludedTags=ero&IsNsfw=True&PageSize=1";
+
+      const res = await axios.get(apiUrl);
+
+      if (!res.data?.items?.length) {
+        return message.reply("❌ No image found.");
+      }
+
+      const imageUrl = res.data.items[0].url;
+
+      return message.reply({
+        body: "🔥 Random Sexy Image",
+        attachment: await global.utils.getStreamFromURL(imageUrl)
+      });
+
+    } catch (err) {
+      console.error(err);
+      return message.reply("❌ Failed to fetch image.");
+    }
+  }
+};

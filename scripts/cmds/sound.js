@@ -1,51 +1,64 @@
-const A = require("axios");
-const B = require("fs-extra");
-const C = require("path");
-
-const JSN = "https://raw.githubusercontent.com/aryannix/stuffs/master/raw/apis.json";
+const axios = require("axios");
+const cheerio = require("cheerio");
+const fs = require("fs");
+const path = require("path");
 
 module.exports = {
   config: {
     name: "sound",
-    version: "0.0.1",
+    version: "1.0.0",
     author: "Hridoy",
-    countDown: 5,
     role: 0,
-    category: "Media"
+    category: "AI",
+    shortDescription: "Get MyInstants sound as audio"
   },
 
-  onStart: async function ({ api, event, args }) {
-    const { threadID: t, messageID: m } = event;
-    const q = args.join(" ");
-    if (!q) return api.sendMessage("• Please provide a sound name.", t, m);
-
-    api.setMessageReaction("⏳", m, () => {}, true);
+  onStart: async function ({ args, message }) {
+    const query = args.join(" ");
+    if (!query) return message.reply("❌ Please give a sound name");
 
     try {
-      const D = await A.get(JSN);
-      const E = D.data.api;
+      // 1. Search MyInstants
+      const searchUrl = `https://www.myinstants.com/en/search/?name=${encodeURIComponent(query)}`;
+      const res = await axios.get(searchUrl);
+      const $ = cheerio.load(res.data);
 
-      const r = await A.get(`${E}/soundmeme?q=${encodeURIComponent(q)}`);
-      const d = r.data.results[0];
+      // 2. Get first result link
+      const firstLink = $(".instant-link").attr("href");
 
-      if (!d || !d.sound) throw new Error();
+      if (!firstLink) return message.reply("❌ No sound found");
 
-      const p = C.join(__dirname, "cache", `snd_${Date.now()}.mp3`);
-      await B.ensureDir(C.dirname(p));
+      const soundPage = "https://www.myinstants.com" + firstLink;
 
-      const au = await A.get(d.sound, { responseType: "arraybuffer" });
-      B.writeFileSync(p, Buffer.from(au.data));
+      // 3. Load sound page
+      const pageRes = await axios.get(soundPage);
+      const $$ = cheerio.load(pageRes.data);
 
-      api.setMessageReaction("✅", m, () => {}, true);
+      // 4. Extract MP3
+      const mp3 =
+        $$("audio source").attr("src") ||
+        $$("meta[property='og:audio']").attr("content");
 
-      await api.sendMessage({
-        body: `🎵 𝗦𝗼𝘂𝗻𝗱: ${d.title}`,
-        attachment: B.createReadStream(p)
-      }, t, () => B.unlinkSync(p), m);
+      if (!mp3) return message.reply("❌ Audio not found");
 
-    } catch (e) {
-      api.setMessageReaction("❌", m, () => {}, true);
-      return api.sendMessage("• Sound not found.", t, m);
+      const audioUrl = mp3.startsWith("http")
+        ? mp3
+        : "https://www.myinstants.com" + mp3;
+
+      // 5. Download file
+      const filePath = path.join(__dirname, "sound.mp3");
+      const audio = await axios.get(audioUrl, { responseType: "arraybuffer" });
+
+      fs.writeFileSync(filePath, audio.data);
+
+      // 6. Send audio
+      return message.reply({
+        attachment: fs.createReadStream(filePath)
+      });
+
+    } catch (err) {
+      console.log(err);
+      message.reply("❌ Error fetching sound");
     }
   }
 };

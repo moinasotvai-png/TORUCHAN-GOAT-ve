@@ -1,87 +1,125 @@
 module.exports = {
-        config: {
-                name: "tag",
-                version: "1.7",
-                author: "MahMUD",
-                countDown: 0,
-                role: 0,
-                category: "Utility",
-                guide: {
-                        en: "{pn} [reply/@mention/name] [text]",
-                        bn: "{pn} [রিপ্লাই/@মেনশন/নাম] [টেক্সট]",
-                        vi: "{pn} [phản hồi/@mention/tên] [văn bản]"
-                }
-        },
+	config: {
+		name: "tag",
+		version: "2.0",
+		author: "Hridoy",
+		countDown: 0,
+		role: 0,
+		category: "Utility",
+		guide: {
+			en: "{pn} [reply/@mention/name/all] [text]"
+		}
+	},
 
-        langs: {
-                bn: {
-                        no_user: "❌ এই গ্রুপে এই নামের কাউকে পাওয়া যায়নি!",
-                        guide_msg: "⚠️ অনুগ্রহ করে রিপ্লাই দিন, মেনশন করুন অথবা নাম লিখুন!",
-                        error: "❌ একটি সমস্যা হয়েছে: %1"
-                },
-                en: {
-                        no_user: "❌ User not found in this group!",
-                        guide_msg: "⚠️ Please reply, mention, or type a name!",
-                        error: "❌ Error occurred: %1"
-                },
-                vi: {
-                        no_user: "❌ Không tìm thấy người dùng trong nhóm này!",
-                        guide_msg: "⚠️ Vui lòng phản hồi, gắn thẻ hoặc nhập tên!",
-                        error: "❌ Đã xảy ra lỗi: %1"
-                }
-        },
+	langs: {
+		en: {
+			no_user: "❌ User not found in this group!",
+			guide_msg: "⚠️ Please reply, mention, type a name or use 'all'!",
+			error: "❌ Error occurred: %1"
+		}
+	},
 
-        onStart: async function ({ api, event, args, getLang }) {
-                const authorName = String.fromCharCode(77, 97, 104, 77, 85, 68);
-                if (this.config.author !== authorName) {
-                        return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
-                }
+	onStart: async function ({ api, event, args, getLang }) {
+		try {
+			const { threadID, messageID, messageReply, mentions } = event;
 
-                try {
-                        const { threadID, messageID, messageReply, mentions } = event;
-                        let uid;
-                        let text = args.join(" ");
+			if (!args.length) {
+				return api.sendMessage(
+					getLang("guide_msg"),
+					threadID,
+					messageID
+				);
+			}
 
-                        if (messageReply) {
-                                uid = messageReply.senderID;
-                        }
+			// TAG ALL
+			if (
+				["all", "everyone", "tagall"].includes(
+					args[0].toLowerCase()
+				)
+			) {
+				const threadInfo = await api.getThreadInfo(threadID);
 
-                        else if (Object.keys(mentions).length > 0) {
-                                uid = Object.keys(mentions)[0];    
-                                text = text.replace(/@\S+/g, "").trim();
-                        }
+				const mentionData = [];
+				let body = args.slice(1).join(" ") || "📢 Everyone";
 
-                        else if (args.length > 0) {
-                                const nameInput = args[0].toLowerCase();
-                                const threadInfo = await api.getThreadInfo(threadID);
-                                const member = threadInfo.userInfo.find(u =>
-                                        u.name.toLowerCase().includes(nameInput)
-                                );
+				threadInfo.userInfo.forEach((user) => {
+					body += `\n@${user.name}`;
+					mentionData.push({
+						tag: `@${user.name}`,
+						id: user.id
+					});
+				});
 
-                                if (!member) return api.sendMessage(getLang("no_user"), threadID, messageID);
+				return api.sendMessage(
+					{
+						body,
+						mentions: mentionData
+					},
+					threadID,
+					messageID
+				);
+			}
 
-                                uid = member.id;
-                                text = args.slice(1).join(" ");
-                        }
+			let uid;
+			let text = args.join(" ");
 
-                        else {
-                                return api.sendMessage(getLang("guide_msg"), threadID, messageID);
-                        }
+			// Reply
+			if (messageReply) {
+				uid = messageReply.senderID;
+			}
 
-                        const userInfo = await api.getUserInfo(uid);
-                        const name = userInfo[uid]?.name || "User";
+			// Mention
+			else if (Object.keys(mentions).length > 0) {
+				uid = Object.keys(mentions)[0];
+				text = text.replace(/@\S+/g, "").trim();
+			}
 
-                        return api.sendMessage({
-                                body: `${name} ${text}`,
-                                mentions: [{
-                                        tag: name,
-                                        id: uid
-                                }]
-                        }, threadID, messageID);
+			// Name Search
+			else {
+				const nameInput = args[0].toLowerCase();
 
-                } catch (e) {
-                        console.log(e);
-                        return api.sendMessage(getLang("error", e.message), event.threadID, event.messageID);
-                }
-        }
+				const threadInfo = await api.getThreadInfo(threadID);
+
+				const member = threadInfo.userInfo.find(
+					(u) =>
+						u.name &&
+						u.name.toLowerCase().includes(nameInput)
+				);
+
+				if (!member)
+					return api.sendMessage(
+						getLang("no_user"),
+						threadID,
+						messageID
+					);
+
+				uid = member.id;
+				text = args.slice(1).join(" ");
+			}
+
+			const userInfo = await api.getUserInfo(uid);
+			const name = userInfo[uid]?.name || "User";
+
+			return api.sendMessage(
+				{
+					body: `${name} ${text}`.trim(),
+					mentions: [
+						{
+							tag: name,
+							id: uid
+						}
+					]
+				},
+				threadID,
+				messageID
+			);
+		} catch (e) {
+			console.error(e);
+			return api.sendMessage(
+				getLang("error", e.message),
+				event.threadID,
+				event.messageID
+			);
+		}
+	}
 };

@@ -1,90 +1,90 @@
-const { createCanvas, loadImage } = require("canvas");
 const axios = require("axios");
-const fs = require("fs-extra");
+const fs = require("fs");
 const path = require("path");
 
+const mahmud = async () => {
+        const base = await axios.get("https://raw.githubusercontent.com/mahmudx7/HINATA/main/baseApiUrl.json");
+        return base.data.mahmud;
+};
+
 module.exports = {
-  config: {
-    name: "latti",
-    aliases: ["lathi"],
-    version: "1.2",
-    author: "eden",
-    countDown: 5,
-    role: 0,
-    shortDescription: "Football kick edit",
-    longDescription: "Adds your profile pic and target's profile pic into a football kick meme",
-    category: "Tag Fun",
-    guide: {
-      en: "{p}{n} @mention / reply"
-    }
-  },
+        config: {
+                name: "latti",
+                aliases: ["latthi"],
+                version: "1.7",
+                author: "MahMUD",
+                countDown: 5,
+                role: 0,
+                description: {
+                        bn: "প্রিয়জনের সাথে kicked ইমেজ জেনারেট করুন",
+                        en: "Generate a image with your kicked one",
+                        vi: "Tạo hình ảnh ôm nhau trên giường với người yêu"
+                },
+                category: "Tag Fun",
+                guide: {
+                        bn: '   {pn} @মেনশন: কাউকে মেনশন দিয়ে ব্যবহার করুন',
+                        en: '   {pn} @mention: Mention someone to use',
+                        vi: '   {pn} @mention: Đề cập đến ai đó để sử dụng'
+                }
+        },
 
-  onStart: async function ({ api, event, args }) {
-    try {
-      let targetID;
-      if (Object.keys(event.mentions).length > 0) {
-        targetID = Object.keys(event.mentions)[0];
-      } else if (event.messageReply) {
-        targetID = event.messageReply.senderID;
-      } else {
-        return api.sendMessage("- কাকে ফুটবল এর মতো কিক মারবি মেনশন দে..!", event.threadID, event.messageID);
-      }
+        langs: {
+                bn: {
+                        noMention: "× বেবি, কাউকে তো মেনশন দাও",
+                        success: "𝐇𝐞𝐫𝐞’𝐬 𝐲𝐨𝐮𝐫 𝐢𝐦𝐚𝐠𝐞 𝐛𝐚𝐛𝐲",
+                        error: "× সমস্যা হয়েছে: %1। প্রয়োজনে Contact Kakashi।"
+                },
+                en: {
+                        noMention: "× Baby, please mention someone!",
+                        success: "𝐇𝐞𝐫𝐞’𝐬 𝐲𝐨𝐮𝐫 𝐢𝐦𝐚𝐠𝐞 𝐛𝐚𝐛𝐲",
+                        error: "× API error: %1. Contact MahMUD for help."
+                },
+                vi: {
+                        noMention: "× Cưng ơi, hãy đề cập đến ai đó",
+                        success: "Ảnh của cưng đây",
+                        error: "× Lỗi: %1. Liên hệ MahMUD để hỗ trợ."
+                }
+        },
 
-      const senderID = event.senderID;
+        onStart: async function ({ api, event, message, getLang }) {
+                const authorName = String.fromCharCode(77, 97, 104, 77, 85, 68);
+                if (this.config.author.trim() !== authorName) {
+                        return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
+                }
 
-      const senderAvatar = `https://graph.facebook.com/${senderID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
-      const targetAvatar = `https://graph.facebook.com/${targetID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
+                const mentions = Object.keys(event.mentions);
+                if (mentions.length === 0) return message.reply(getLang("noMention"));
 
-      const templatePath = path.join(__dirname, "cache", "dkick_base.png");
-      if (!fs.existsSync(templatePath)) {
-        const imgUrl = "https://files.catbox.moe/4x39pb.jpg";
-        const res = await axios.get(imgUrl, { responseType: "arraybuffer" });
-        fs.outputFileSync(templatePath, res.data);
-      }
+                const senderID = event.senderID;
+                const targetID = mentions[0];
+                const imgPath = path.join(__dirname, "cache", `kicked_${senderID}_${targetID}.png`);
+                if (!fs.existsSync(path.dirname(imgPath))) fs.mkdirSync(path.dirname(imgPath), { recursive: true });
 
-      const baseImg = await loadImage(templatePath);
-      const senderImg = await loadImage(senderAvatar);
-      const targetImg = await loadImage(targetAvatar);
+                try {
+                     
+                        api.setMessageReaction("⏳", event.messageID, () => {}, true);
+                        
+                        const base = await mahmud();
+                        const response = await axios.post(`${base}/api/kicked`, 
+                                { senderID, targetID }, 
+                                { responseType: "arraybuffer" }
+                        );
 
-      const canvas = createCanvas(baseImg.width, baseImg.height);
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(baseImg, 0, 0, canvas.width, canvas.height);
+                        fs.writeFileSync(imgPath, Buffer.from(response.data, "binary"));
 
-      // Sender face
-      const senderY = 130;
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(120, senderY + 45, 45, 0, Math.PI * 2, true);
-      ctx.closePath();
-      ctx.clip();
-      ctx.drawImage(senderImg, 75, senderY, 90, 90);
-      ctx.restore();
+                        return message.reply({
+                                body: getLang("success"),
+                                attachment: fs.createReadStream(imgPath)
+                        }, () => {
+                                api.setMessageReaction("✅", event.messageID, () => {}, true);
+                                if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+                        });
 
-      // Target face
-      const targetX = 260;
-      const targetY = 25;
-      const targetSize = 100;
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(targetX + targetSize / 2, targetY + targetSize / 2, targetSize / 2, 0, Math.PI * 2, true);
-      ctx.closePath();
-      ctx.clip();
-      ctx.drawImage(targetImg, targetX, targetY, targetSize, targetSize);
-      ctx.restore();
-
-      const outPath = path.join(__dirname, "cache", `dkick_${event.senderID}.png`);
-      fs.writeFileSync(outPath, canvas.toBuffer());
-
-      api.sendMessage(
-        { body: "- Bombolaaa 🦵⚽", attachment: fs.createReadStream(outPath) },
-        event.threadID,
-        () => fs.unlinkSync(outPath),
-        event.messageID
-      );
-    } catch (e) {
-      console.error(e);
-      return api.sendMessage("❌ Error generating image.", event.threadID, event.messageID);
-    }
-  }
+                } catch (err) {
+                        console.error("kick Error:", err);
+                        api.setMessageReaction("❌", event.messageID, () => {}, true);
+                        if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+                        return message.reply(getLang("error", err.message));
+                }
+        }
 };

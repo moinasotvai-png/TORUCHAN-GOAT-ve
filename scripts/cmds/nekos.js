@@ -1,9 +1,8 @@
 const axios = require("axios");
 
 const IMAGE_ACTIONS = [
-  "ngif","hug","gecg","pat","cuddle","meow","tickle","gasm","goose",
-  "lewd","v3","spank","feed","slap","wallpaper","neko","lizard",
-  "woof","fox_girl","kiss","avatar","waifu","smug"
+  "ngif","hug","pat","cuddle","meow","tickle","gasm","spank",
+  "feed","slap","wallpaper","neko","fox_girl","kiss","waifu","smug"
 ];
 
 const TEXT_ACTIONS = [
@@ -12,35 +11,34 @@ const TEXT_ACTIONS = [
 
 function buildMenu() {
   let i = 1;
-  let text = `✨ 𝗡𝗘𝗞𝗢𝗦 𝗠𝗘𝗡𝗨 ✨\n\n`;
-  text += `🖼 𝗜𝗠𝗔𝗚𝗘 / 𝗚𝗜𝗙\n`;
+  let text = `✨ NEKOS MENU ✨\n\n🖼 IMAGE\n`;
 
   for (const a of IMAGE_ACTIONS) {
     text += `  ${i}. ${a}\n`;
     i++;
   }
 
-  text += `\n🧠 𝗧𝗘𝗫𝗧 / 𝗙𝗨𝗡\n`;
+  text += `\n🧠 TEXT\n`;
+
   for (const a of TEXT_ACTIONS) {
     text += `  ${i}. ${a}\n`;
     i++;
   }
 
-  text += `\n📌 Reply with number (1-${i - 1})`;
+  text += `\nReply number (1-${i - 1})`;
   return text;
 }
 
 module.exports = {
   config: {
     name: "nekos",
-    aliases: [],
-    version: "2.0.0",
-    author: "sifu",
-    countDown: 5,
+    version: "2.1.0",
+    author: "Hridoy",
     role: 0,
-    shortDescription: { en: "Advanced Nekos.life menu system" },
+    shortDescription: "Nekos.life menu system",
     category: "Image",
-    guide: { en: "{p}nekos" }
+    guide: "{pn}nekos",
+    cooldown: 5
   },
 
   onStart: async function ({ api, event }) {
@@ -48,56 +46,68 @@ module.exports = {
       buildMenu(),
       event.threadID,
       (err, info) => {
+        if (!global.GoatBot) global.GoatBot = {};
+        if (!global.GoatBot.onReply) global.GoatBot.onReply = new Map();
+
         global.GoatBot.onReply.set(info.messageID, {
           commandName: "nekos",
           author: event.senderID
         });
-      }
+      },
+      event.messageID
     );
   },
 
   onReply: async function ({ api, event, Reply }) {
-    if (event.senderID !== Reply.author) return;
-
-    const choice = parseInt(event.body);
-    if (isNaN(choice)) return;
-
-    const allActions = [...IMAGE_ACTIONS, ...TEXT_ACTIONS];
-    const action = allActions[choice - 1];
-    if (!action) return;
-
     try {
-      /* IMAGE / GIF */
+      if (!Reply || event.senderID !== Reply.author) return;
+
+      const choice = parseInt(event.body);
+      if (!choice) return;
+
+      const all = [...IMAGE_ACTIONS, ...TEXT_ACTIONS];
+      const action = all[choice - 1];
+      if (!action) return;
+
+      /* ================= IMAGE ================= */
       if (IMAGE_ACTIONS.includes(action)) {
         const res = await axios.get(
           `https://nekos.life/api/v2/img/${action}`
         );
 
+        const url = res.data?.url;
+        if (!url) throw new Error("No image URL");
+
         return api.sendMessage(
           {
-            body: `✨ ${action.toUpperCase()} ✨`,
-            attachment: await global.utils.getStreamFromURL(res.data.url)
+            body: `✨ ${action.toUpperCase()}`,
+            attachment: await global.utils.getStreamFromURL(url)
           },
-          event.threadID
+          event.threadID,
+          event.messageID
         );
       }
 
-      /* TEXT */
+      /* ================= TEXT ================= */
       const res = await axios.get(
         `https://nekos.life/api/v2/${action}`
       );
 
-      const key = Object.keys(res.data)[0];
+      const key = Object.keys(res.data || {})[0];
+
       return api.sendMessage(
-        `✨ ${action.toUpperCase()} ✨\n${res.data[key]}`,
-        event.threadID
+        `✨ ${action.toUpperCase()} ✨\n\n${res.data[key] || "No data"}`,
+        event.threadID,
+        event.messageID
       );
 
-    } catch (e) {
-      console.error("nekos error:", e);
-      api.sendMessage(
-        "❌ Something went wrong, try again later.",
-        event.threadID
+    } catch (err) {
+      console.error("NEKOS ERROR:", err.message);
+
+      return api.sendMessage(
+        "❌ API error / invalid response. Try again later.",
+        event.threadID,
+        event.messageID
       );
     }
   }

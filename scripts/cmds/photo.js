@@ -29,7 +29,7 @@ module.exports = {
 │ photo <id> <text>
 │
 │ Example:
-│ photo 1 Mamun
+│ photo 1 Hr IDOY
 ╰─────────────`,
         event.threadID,
         event.messageID

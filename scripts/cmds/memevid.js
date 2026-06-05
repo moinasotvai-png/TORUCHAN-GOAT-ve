@@ -28,7 +28,7 @@ module.exports = {
     
     try {
       const apiUrl = await mahmud();
-      const res = await axios.get(`${apiUrl}/api/album/videos/meme?userID=${event.senderID}`);
+      const res = await axios.get(`${apiUrl}/api/album/mahmud/videos/meme?userID=${event.senderID}`);
       if (!res.data.success || !res.data.videos.length)
         return api.sendMessage("❌ | No videos found.", event.threadID, event.messageID);
 
@@ -57,7 +57,7 @@ module.exports = {
       });
     } catch (e) {
       console.error("ERROR:", e);
-      api.sendMessage("🥹error, contact Kakashi.", event.threadID, event.messageID);
+      api.sendMessage("🥹error, contact Hridoy.", event.threadID, event.messageID);
     }
   }
 };

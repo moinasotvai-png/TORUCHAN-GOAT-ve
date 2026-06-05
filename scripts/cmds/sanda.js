@@ -1,97 +1,103 @@
 const fs = require("fs-extra");
 const path = require("path");
 const axios = require("axios");
-const jimp = require("jimp");
+const { createCanvas, loadImage } = require("canvas");
 
 module.exports = {
   config: {
     name: "sanda",
-    version: "1.0.2",
-    author: "NAFIJ PRO",
+    version: "2.0.1",
+    author: "Hridoy", //author cng korle Tor ma re cdmu raja condom lagai 🐍 
     countDown: 5,
     role: 0,
-    shortDescription: "Expose someone as a sanda!",
-    longDescription: "Puts the tagged/replied user's face on a sanda's body (fun meme)",
+    shortDescription: "Expose someone as sanda",
     category: "Tag Fun",
     guide: {
-      en: "{pn} @mention or reply to sanda someone",
-    },
+      en: "{pn} @mention or reply"
+    }
   },
 
   onStart: async function ({ event, message, api }) {
-    let targetID = Object.keys(event.mentions)[0];
-    if (event.type === "message_reply") {
+    let targetID;
+
+    // Mention system
+    if (event.mentions && Object.keys(event.mentions).length > 0) {
+      targetID = Object.keys(event.mentions)[0];
+    }
+
+    // Reply system
+    if (event.type === "message_reply" && event.messageReply) {
       targetID = event.messageReply.senderID;
     }
 
     if (!targetID) {
-      return message.reply("❗ Tag or reply to someone to turn them into a sanda!");
+      return message.reply("❗ Tag or reply to someone!");
     }
 
     if (targetID === event.senderID) {
-      return message.reply("❗ Bro, why would you sanda yourself?");
+      return message.reply("❗ নিজেকেই sanda বানাবি? 😂");
     }
 
     const baseFolder = path.join(__dirname, "NAFIJ");
-    const bgPath = path.join(baseFolder, "sanda.jpg");
-    const avatarPath = path.join(baseFolder, `avatar_${targetID}.png`);
-    const outputPath = path.join(baseFolder, `sanda_result_${targetID}.png`);
+    if (!fs.existsSync(baseFolder)) fs.mkdirSync(baseFolder);
+
+    const outputPath = path.join(baseFolder, `sanda_${targetID}.png`);
 
     try {
-      if (!fs.existsSync(baseFolder)) fs.mkdirSync(baseFolder);
+      // background + avatar
+      const bgUrl =
+        "https://raw.githubusercontent.com/alkama844/res/refs/heads/main/image/sanda.jpg";
 
-      // Download sanda image if missing
-      if (!fs.existsSync(bgPath)) {
-        const imgUrl = "https://raw.githubusercontent.com/alkama844/res/refs/heads/main/image/sanda.jpg";
-        const res = await axios.get(imgUrl, { responseType: "arraybuffer" });
-        fs.writeFileSync(bgPath, res.data);
-      }
+      const avatarUrl = `https://graph.facebook.com/${targetID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
 
-      // Download avatar from Facebook Graph API
-      const avatarBuffer = (
-        await axios.get(`https://graph.facebook.com/${targetID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`, {
-          responseType: "arraybuffer",
-        })
-      ).data;
+      const [bgBuffer, avatarBuffer] = await Promise.all([
+        axios.get(bgUrl, { responseType: "arraybuffer" }).then(r => r.data),
+        axios.get(avatarUrl, { responseType: "arraybuffer" }).then(r => r.data)
+      ]);
 
-      await fs.writeFile(avatarPath, avatarBuffer);
+      const bg = await loadImage(bgBuffer);
+      const avatar = await loadImage(avatarBuffer);
 
-      const avatarImg = await jimp.read(avatarPath);
-      avatarImg.circle();
-      await avatarImg.writeAsync(avatarPath);
+      const canvas = createCanvas(600, 800);
+      const ctx = canvas.getContext("2d");
 
-      const bg = await jimp.read(bgPath);
-      bg.resize(600, 800); // standard size
+      // background
+      ctx.drawImage(bg, 0, 0, 600, 800);
 
-      const avatarCircle = await jimp.read(avatarPath);
-      avatarCircle.resize(130, 130); // adjust head size
+      // avatar circle
+      const size = 140;
+      const x = 230;
+      const y = 60;
 
-      // Center horizontally based on background width
-      const xCenter = (bg.getWidth() - avatarCircle.getWidth()) / 2;
-      const yTop = 60; // keep vertical position near sanda's head
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
 
-      bg.composite(avatarCircle, xCenter, yTop);
+      ctx.drawImage(avatar, x, y, size, size);
+      ctx.restore();
 
-      const finalBuffer = await bg.getBufferAsync("image/png");
-      fs.writeFileSync(outputPath, finalBuffer);
+      const buffer = canvas.toBuffer("image/png");
+
+      fs.writeFileSync(outputPath, buffer);
 
       const userInfo = await api.getUserInfo(targetID);
-      const tagName = userInfo[targetID]?.name || "Someone";
+      const name = userInfo[targetID]?.name || "User";
 
-      await message.reply(
+      return message.reply(
         {
-          body: `🤣😹\n${tagName} এখন একদম আসল সান্দা হইছে!\n🦥✨`,
-          mentions: [{ tag: tagName, id: targetID }],
-          attachment: fs.createReadStream(outputPath),
+          body: `🤣 ${name} এখন official Sanda! 🦥`,
+          attachment: fs.createReadStream(outputPath)
         },
         () => {
-          fs.unlinkSync(avatarPath);
-          fs.unlinkSync(outputPath);
+          if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
         }
       );
+
     } catch (err) {
-      console.error(" Sanda Command Error:", err);
-      message.reply(" সমস্যা হইসে ভাই। আরেকবার try দে।");
+      console.error("Sanda Error:", err);
+      return message.reply("❌ Image generate failed. আবার try করো।");
     }
-  },
+  }
 };

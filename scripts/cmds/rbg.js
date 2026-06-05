@@ -1,47 +1,97 @@
 const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 
-const apiKey = "66e0cfbb-62b8-4829-90c7-c78cacc72ae2";
+const mahmud = async () => {
+        const base = await axios.get("https://raw.githubusercontent.com/mahmudx7/HINATA/main/baseApiUrl.json");
+        return base.data.mahmud;
+};
 
 module.exports = {
-  config: {
-    name: "rbg",
-    version: "1.0",
-    author: "nexo_here",
-    category: "Image",
-    shortDescription: "Remove background from image",
-    longDescription: "Removes background from replied or attached image using removebgv3 API",
-    guide: "{pn} (reply to image)"
-  },
+        config: {
+                name: "removebg",
+                aliases: ["rmbg", "rbg"],
+                version: "1.7",
+                author: "MahMUD",
+                countDown: 10,
+                role: 0,
+                category: "Image",
+                guide: {
+                        en: "{pn} [Reply to an image]",
+                        bn: "{pn} [ছবির উপরে রিপ্লাই দিন]",
+                        vi: "{pn} [Phản hồi một hình ảnh]"
+                }
+        },
 
-  onStart: async function({ api, event, args }) {
-    try {
-      let imageUrl = "";
+        langs: {
+                bn: {
+                        noReply: "• বেবি, ব্যাকগ্রাউন্ড রিমুভ করার জন্য একটি ছবিতে রিপ্লাই দাও.",
+                        error: "❌ An error occurred: contact MahMUD %1",
+                        success: "✅ Background Removed Successfully!"
+                },
+                en: {
+                        noReply: "• Baby, please reply to an image to remove background.",
+                        error: "❌ An error occurred: contact MahMUD %1",
+                        success: "✅ Background Removed Successfully!"
+                },
+                vi: {
+                        noReply: "• Cưng ơi, vui lòng phản hồi một hình ảnh để xóa nền.",
+                        error: "❌ An error occurred: contact MahMUD %1",
+                        success: "✅ Xóa nền thành công!"
+                }
+        },
 
-      if (event.type === "message_reply" && event.messageReply && event.messageReply.attachments && event.messageReply.attachments.length) {
-        imageUrl = event.messageReply.attachments[0].url;
-      }
-      else if (event.attachments && event.attachments.length) {
-        imageUrl = event.attachments[0].url;
-      }
-      else {
-        return api.sendMessage("❌ Please reply to or attach an image.", event.threadID, event.messageID);
-      }
+        onStart: async function ({ api, event, message, getLang }) {
+                const authorName = String.fromCharCode(77, 97, 104, 77, 85, 68);
+                if (this.config.author !== authorName) {
+                        return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
+                }
 
-      const apiUrl = `https://kaiz-apis.gleeze.com/api/removebgv3?url=${encodeURIComponent(imageUrl)}&stream=true&apikey=${apiKey}`;
+                const { threadID, messageID, type, messageReply } = event;
 
-      const response = await axios({
-        method: "GET",
-        url: apiUrl,
-        responseType: "stream"
-      });
+                if (type !== "message_reply" || !messageReply.attachments || messageReply.attachments[0].type !== "photo") {
+                        return message.reply(getLang("noReply"));
+                }
 
-      return api.sendMessage({
-        attachment: response.data
-      }, event.threadID, event.messageID);
+                const cacheDir = path.join(__dirname, "cache");
+                if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+                const outputPath = path.join(cacheDir, `rmbg_${Date.now()}.png`);
 
-    } catch (error) {
-      console.error("rbg command error:", error);
-      return api.sendMessage("❌ Failed to remove background.", event.threadID, event.messageID);
-    }
-  }
+                try {
+                        api.setMessageReaction("⏳", messageID, () => { }, true);
+
+                        const imageUrl = messageReply.attachments[0].url;
+                        const apiUrlBase = await mahmud();
+
+                        const response = await axios.post(
+                                `${apiUrlBase}/api/rmbg`,
+                                { imageUrl },
+                                { responseType: "stream" }
+                        );
+
+                        const writer = fs.createWriteStream(outputPath);
+                        response.data.pipe(writer);
+
+                        writer.on("finish", () => {
+                                api.sendMessage({
+                                        body: getLang("success"),
+                                        attachment: fs.createReadStream(outputPath)
+                                }, threadID, (err) => {
+                                        if (!err) {
+                                                api.setMessageReaction("🪽", messageID, () => { }, true);
+                                        }
+                                        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+                                }, messageID);
+                        });
+
+                        writer.on("error", (err) => {
+                                throw err;
+                        });
+
+                } catch (error) {
+                        api.setMessageReaction("❌", messageID, () => { }, true);
+                        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+                        api.sendMessage(getLang("error", error.message || "API Error"), threadID, messageID);
+                }
+        }
 };

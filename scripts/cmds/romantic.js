@@ -4,7 +4,7 @@ const path = require("path");
 
 module.exports = {
   config: {
-    name: "sad",
+    name: "romantic",
     version: "2.0.1",
     author: "Hridoy",
     countDown: 5,
@@ -15,21 +15,21 @@ module.exports = {
 
   onStart: async function ({ api, event }) {
     const videos = [
-      "https://i.imgur.com/6ktvnqN.mp4",
-      "https://i.imgur.com/0Jrsr2e.mp4",
-      "https://i.imgur.com/Doa1TpO.mp4",
-      "https://i.imgur.com/8l9BxTR.mp4",
-      "https://i.imgur.com/MjTC15R.mp4",
-      "https://i.imgur.com/kf7mzNU.mp4",
-      "https://i.imgur.com/xpnTQrr.mp4",
-      "https://i.imgur.com/xglXpx1.mp4",
-      "https://i.imgur.com/sZov8lr.mp4",
-      "https://i.imgur.com/74VNRIp.mp4",
-      "https://i.imgur.com/8NyChz7.mp4",
-      "https://i.imgur.com/THAGbvB.mp4",
-      "https://i.imgur.com/87rzUP1.mp4",
-      "https://i.imgur.com/eye1gDi.mp4",
-      "https://i.imgur.com/6ktvnqN.mp4"
+      "https://i.imgur.com/yrcQXtY.mp4",
+      "https://i.imgur.com/xokwCXu.mp4",
+      "https://i.imgur.com/pmrj0at.mp4",
+      "https://i.imgur.com/gkrdZsl.mp4",
+      "https://i.imgur.com/gpOukFP.mp4",
+      "https://i.imgur.com/xyle5CH.mp4",
+      "https://i.imgur.com/XEDTTKs.mp4",
+      "https://i.imgur.com/3CP2XC0.mp4",
+      "https://i.imgur.com/vCQQldS.mp4",
+      "https://i.imgur.com/VhgSxIp.mp4",
+      "https://i.imgur.com/CqL2dDx.mp4",
+      "https://i.imgur.com/X76vuLq.mp4",
+      "https://i.imgur.com/kUjmwBR.mp4",
+      "https://i.imgur.com/OiWZmRd.mp4",
+      "https://i.imgur.com/qrf6a7Z.mp4"
     ];
 
     const video =
@@ -54,7 +54,7 @@ module.exports = {
 
       await api.sendMessage(
         {
-          body: " Here's Your Sad  Video!",
+          body: " Here's Your romantic Video 👀",
           attachment: fs.createReadStream(filePath)
         },
         event.threadID

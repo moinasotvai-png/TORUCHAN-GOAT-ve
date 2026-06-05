@@ -1,68 +1,47 @@
-const fs = require("fs");
-const path = require("path");
 const axios = require("axios");
 
 module.exports = {
   config: {
     name: "neko",
     version: "1.0.0",
-    author: "SIFU",
-    cooldown: 5,
+    author: "Hridoy",
     role: 0,
+    shortDescription: "Send random neko image 🐱",
     category: "Image",
-    shortDescription: "Send a cute neko image",
-    longDescription: "Fetches an image .",
+    guide: "{pn}",
+    cooldown: 5
   },
 
-  onStart: async function ({ api, event, args }) {
-    const { threadID, messageID } = event;
-    const tmpDir = path.join(__dirname, "cache");
-    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-
-    const filename = `neko_${threadID}_${Date.now()}.jpg`;
-    const filepath = path.join(tmpDir, filename);
-    const url = "https://mahbub-ullash.cyberbot.top/api/neko";
-
+  onStart: async function ({ api, event }) {
     try {
-      // Request image as arraybuffer then write to file
-      const res = await axios.get(url, { responseType: "arraybuffer", timeout: 20000 });
+      const res = await axios.get("https://nekos.life/api/v2/img/neko");
 
-      // Basic validation of content-type (image)
-      const ct = res.headers["content-type"] || "";
-      if (!ct.startsWith("image/")) {
-        // If API returns JSON or error, try to parse and show message
-        let text = "Failed to fetch image from API.";
-        try {
-          const textBody = Buffer.from(res.data).toString("utf8");
-          const parsed = JSON.parse(textBody);
-          if (parsed && parsed.message) text = `API error: ${parsed.message}`;
-          else text = `Unexpected response from API (content-type: ${ct}).`;
-        } catch (err) {
-          text = `Unexpected response from API (content-type: ${ct}).`;
-        }
-        return api.sendMessage(text, threadID, messageID);
+      const imageUrl = res.data.url; // 🔥 main fix
+
+      if (!imageUrl) {
+        return api.sendMessage(
+          "❌ Neko image not found!",
+          event.threadID,
+          event.messageID
+        );
       }
 
-      fs.writeFileSync(filepath, Buffer.from(res.data), { encoding: "binary" });
+      return api.sendMessage(
+        {
+          body: "🐱 Here is your neko!",
+          attachment: await global.utils.getStreamFromURL(imageUrl)
+        },
+        event.threadID,
+        event.messageID
+      );
 
-      // Send message with attachment
-      const msg = {
-        body: "Here you go — neko! 🐱",
-        attachment: fs.createReadStream(filepath),
-      };
-      await api.sendMessage(msg, threadID, messageID);
-    } catch (error) {
-      console.error("neko command error:", error);
-      let errMsg = "Could not fetch neko image. Try again later.";
-      if (error.code === "ECONNABORTED") errMsg = " Request timed out.";
-      await api.sendMessage(errMsg, threadID, messageID);
-    } finally {
-      // cleanup temp file if exists
-      try {
-        if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
-      } catch (e) {
-        // ignore cleanup errors
-      }
+    } catch (err) {
+      console.error(err);
+      api.sendMessage(
+        "⚠️ Error fetching neko image!",
+        event.threadID,
+        event.messageID
+      );
     }
-  },
+  }
 };

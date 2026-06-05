@@ -1,71 +1,76 @@
-const fs = require("fs-extra");
-const path = require("path");
 const axios = require("axios");
 
 module.exports = {
   config: {
     name: "kick",
-    version: "1.0.2",
-    hasPermssion: 0,
-    credits: "Hridoy",
-    description: "Kick the tagged friend",
-    category: "Tag Fun",
-    usages: "@tag",
-    cooldowns: 5
+    version: "1.0",
+    author: "Hridoy", // author cng korle Tor ma re cdmu raja condom lagai 🐍 
+    role: 0,
+    shortDescription: "kick a user with gif",
+    category: "Tag Fun"
   },
 
-  onStart: async function({ api, event }) {
+  onStart: async function ({ message, event, api }) {
+    let targetID;
+    let targetName;
+
+    const gifs = [
+        "https://i.imgur.com/v5klVac.gif",
+        "https://i.imgur.com/niWRj0Z.gif",
+        "https://i.imgur.com/Dze3otO.gif",
+        "https://i.imgur.com/U8V0UmL.gif",
+        "https://i.imgur.com/VJ95BSY.gif",
+        "https://i.imgur.com/RAXDfSS.gif",
+        "https://i.imgur.com/2e5w3Xw.gif",
+        "https://i.imgur.com/MUHN9pP.gif"
+        ];
+
+    // mention system
+    if (Object.keys(event.mentions || {}).length > 0) {
+      targetID = Object.keys(event.mentions)[0];
+      targetName = event.mentions[targetID];
+    }
+
+    // reply system
+    else if (event.type === "message_reply" && event.messageReply) {
+      targetID = event.messageReply.senderID;
+
+      const info = await api.getUserInfo(targetID);
+      targetName = info[targetID]?.name || "User";
+    }
+
+    if (!targetID) {
+      return message.reply("❌ Please mention or reply to someone.");
+    }
+
+    const url = gifs[Math.floor(Math.random() * gifs.length)];
+    const tag = `@${targetName}`;
+
     try {
-      // Check mentions
-      if (!event.mentions || Object.keys(event.mentions).length === 0)
-        return api.sendMessage("❌ Please tag someone to kick!", event.threadID, event.messageID);
-
-      const mentionID = Object.keys(event.mentions)[0];
-      const tagName = event.mentions[mentionID].replace("@", "");
-
-      // Kick GIF links (fixed commas)
-      const gifs = [
-        "https://i.imgur.com/0kL1jqP.gif",
-        "https://i.imgur.com/HPzBl6x.gif",
-        "https://i.postimg.cc/65TSxJYD/2ce5a017f6556ff103bce87b273b89b7.gif",
-        "https://i.postimg.cc/65SP9jPT/Anime-083428-6224795.gif",
-        "https://i.postimg.cc/RFXP2XfS/jXOwoHx.gif",
-        "https://i.postimg.cc/jSPMRsNk/tumblr-nyc5ygy2a-Z1uz35lto1-540.gif"
-      ];
-
-      const randomGif = gifs[Math.floor(Math.random() * gifs.length)];
-
-      // Cache folder
-      const cacheDir = path.join(__dirname, "cache");
-      if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
-
-      const gifPath = path.join(cacheDir, `kick_${Date.now()}.gif`);
-
-      // Download GIF
-      const response = await axios({ url: randomGif, method: "GET", responseType: "stream" });
-      const writer = fs.createWriteStream(gifPath);
-      response.data.pipe(writer);
-
-      writer.on("finish", () => {
-        api.sendMessage(
-          {
-            body: `🦵 ${tagName}, you just got kicked! 😆`,
-            mentions: [{ tag: tagName, id: mentionID }],
-            attachment: fs.createReadStream(gifPath)
-          },
-          event.threadID,
-          () => fs.existsSync(gifPath) && fs.unlinkSync(gifPath),
-          event.messageID
-        );
+      const res = await axios({
+        method: "GET",
+        url,
+        responseType: "stream",
+        timeout: 15000,
+        headers: {
+          "User-Agent": "Mozilla/5.0"
+        }
       });
 
-      writer.on("error", () => {
-        api.sendMessage("❌ Failed to download kick GIF.", event.threadID, event.messageID);
+      return message.reply({
+        body: `${tag} you got kick 🦶 💥`,
+        mentions: [
+          {
+            id: targetID,
+            tag: tag
+          }
+        ],
+        attachment: res.data
       });
 
     } catch (err) {
-      console.error("Kick Command Error:", err);
-      api.sendMessage("❌ An unexpected error occurred.", event.threadID, event.messageID);
+      console.error("KICK GIF ERROR:", err.message || err);
+      return message.reply("❌ GIF load failed.");
     }
   }
 };

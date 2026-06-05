@@ -38,9 +38,7 @@ module.exports = {
 "https://files.catbox.moe/wirvl5.mp4",
 "https://files.catbox.moe/jxkg3j.mp4",
 "https://files.catbox.moe/qhez56.mp4",
-"https://files.catbox.moe/3svgsv.mp4",
-"https://files.catbox.moe/qelfrh.mp4",
-"https://files.catbox.moe/4gldl9.mp4"
+"https://files.catbox.moe/3svgsv.mp4"
       ];
       
       // Select a random video

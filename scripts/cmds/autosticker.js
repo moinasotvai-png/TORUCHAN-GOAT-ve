@@ -1,17 +1,23 @@
 module.exports = {
   config: {
     name: "autosticker",
-    version: "4.5",
+    version: "4.6",
     author: "Hridoy",
     countDown: 1,
     role: 0,
-    description: "Send a random sticker, view total count, or view all IDs.",
+    description: "Send a random sticker when someone sends a sticker. Fixed loop issue.",
     category: "System",
-    guide: ""
+    guide: "{prefix}autosticker list\n{prefix}autosticker listall"
   },
 
   onChat: async function ({ api, event }) {
-    const { attachments, type, threadID, messageID, body } = event;
+    const { attachments, type, threadID, messageID, senderID, body } = event;
+
+    // Bot's own ID
+    const botID = api.getCurrentUserID?.() || process.env.BOT_ID || "YOUR_BOT_ID_HERE";
+
+    // Prevent bot from reacting to its own messages (main fix for loop)
+    if (senderID === botID) return;
 
     const stickerList = [
       "997237917529747", "610031329418350", "610502019371281", "610569272697889", 
@@ -25,6 +31,7 @@ module.exports = {
       "2041012109459596", "2041011389459668", "2041011836126290", "2041012406126233"
     ];
 
+    // Commands
     if (body && body.toLowerCase() === "/autosticker list") {
       return api.sendMessage(`📊 Total stickers: ${stickerList.length}`, threadID, messageID);
     }
@@ -38,8 +45,10 @@ module.exports = {
       return api.sendMessage(msg, threadID, messageID);
     }
 
+    // Main functionality: Only respond when user sends a sticker
     if (type === "message" && attachments && attachments[0] && attachments[0].type === "sticker") {
       const randomSticker = stickerList[Math.floor(Math.random() * stickerList.length)];
+      
       return api.sendMessage({
         sticker: randomSticker
       }, threadID, messageID);

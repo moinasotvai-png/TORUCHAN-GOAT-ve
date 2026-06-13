@@ -18,86 +18,108 @@ module.exports = {
 
     // ===== LOADING ANIMATION =====
     const loadingStages = [
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐎𝐰𝐧𝐞𝐫 𝐈𝐧𝐟𝐨...\n▰▱▱▱▱▱▱▱▱▱ 10%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐎𝐰𝐧𝐞𝐫 𝐈𝐧𝐟𝐨...\n▰▰▰▱▱▱▱▱▱▱ 30%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐎𝐰𝐧𝐞𝐫 𝐈𝐧𝐟𝐨...\n▰▰▰▰▰▱▱▱▱▱ 50%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐎𝐰𝐧𝐞𝐫 𝐈𝐧𝐟𝐨...\n▰▰▰▰▰▰▰▱▱▱ 70%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐎𝐰𝐧𝐞𝐫 𝐈𝐧𝐟𝐨...\n▰▰▰▰▰▰▰▰▰▱ 90%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐎𝐰𝐧𝐞𝐫 𝐈𝐧𝐟𝐨...\n▰▰▰▰▰▰▰▰▰▰ 100%"
     ];
 
     const loadingMsg = await api.sendMessage(loadingStages[0], event.threadID);
 
     for (let i = 1; i < loadingStages.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      api.editMessage(loadingStages[i], loadingMsg.messageID);
+      await new Promise(r => setTimeout(r, 700));
+      await api.editMessage(loadingStages[i], loadingMsg.messageID);
     }
 
     setTimeout(() => {
       api.unsendMessage(loadingMsg.messageID);
-    }, 900);
+    }, 1000);
 
-    // ===== TIME & BOT STATS =====
+    // ===== STATS =====
     const ping = Date.now() - event.timestamp;
 
-    const uptimeSeconds = process.uptime();
-    const hours = Math.floor(uptimeSeconds / 3600);
-    const minutes = Math.floor((uptimeSeconds % 3600) / 60);
-    const seconds = Math.floor(uptimeSeconds % 60);
+    const uptime = process.uptime();
+    const hours = Math.floor(uptime / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const seconds = Math.floor(uptime % 60);
 
     const totalThreads = global.GoatBot?.allThreadID?.length || 0;
-    const totalUsers = global.GoatBot?.users ? Object.keys(global.GoatBot.users).length : 0;
+    const totalUsers = global.GoatBot?.users
+      ? Object.keys(global.GoatBot.users).length
+      : 0;
 
     const BOTNAME = global.GoatBot.config.nickNameBot || "KakashiBot";
     const BOTPREFIX = global.GoatBot.config.prefix;
     const GROUPPREFIX = utils.getPrefix(event.threadID);
     const totalCommands = global.GoatBot.commands.size;
 
-    // ===== OWNER PANEL =====
+    // ===== TEXT =====
     const ownerText =
-`╭━━━━━━━━━━━━━━━━━━╮
-        🤖 BOT SYSTEM
-╰━━━━━━━━━━━━━━━━━━╯
-➤ Bot Name      : ${BOTNAME}
-➤ Global Prefix : ${BOTPREFIX}
-➤ Group Prefix  : ${GROUPPREFIX}
-➤ Total Modules : ${totalCommands}
-➤ Bot Ping      : ${ping} ms ⚡
+`╔════════════════════╗
+   🌟 B O T   S Y S T E M 🌟
+╚════════════════════╝
 
-╭━━━━━━━━━━━━━━━━━━╮
-        👑 OWNER INFO
-╰━━━━━━━━━━━━━━━━━━╯
-➤ Name        : Kakashi Hatake
-➤ Role        : Bot Developer
-➤ Facebook    : facebook.com/100061935903355
-➤ Messenger   : m.me/100061935903355
-➤ WhatsApp    : wa.me/+8801744XXXXXX
+➢ Bot Name     : ${BOTNAME}
+➢ Prefix       : ${BOTPREFIX}
+➢ Group Prefix : ${GROUPPREFIX}
+➢ Total Cmds   : ${totalCommands}
+➢ Ping         : ${ping} ms ⚡
 
-╭━━━━━━━━━━━━━━━━━━╮
-        📊 BOT ACTIVITY
-╰━━━━━━━━━━━━━━━━━━╯
-➤ Uptime       : ${hours}h ${minutes}m ${seconds}s
-➤ Total Groups : ${totalThreads}
-➤ Total Users  : ${totalUsers}
+╔════════════════════╗
+    👑 O W N E R   I N F O
+╚════════════════════╝
 
-━━━━━━━━━━━━━━━━━━
-⚡ Powered By Kakashi
-━━━━━━━━━━━━━━━━━━`;
+➢ Name     : HR ID OY
+➢ Role     : Bot Developer
+➢ Facebook : fb.me/dukkhobilash827642
+➢ Instagram: dukkhobilash____827642
+➢ WhatsApp :+8801744-******
 
-    // ===== IMAGE =====
+╔════════════════════╗
+     📊 B O T   S T A T S
+╚════════════════════╝
+
+➢ Uptime       : ${hours}h ${minutes}m ${seconds}s
+➢ Total Groups : ${totalThreads}
+➢ Total Users  : ${totalUsers}
+
+━━━━━━━━━━━━━━━━━━━━━━━
+   ✨ Powered By HR ID OY ✨
+━━━━━━━━━━━━━━━━━━━━━━━`;
+
+    // ===== IMAGE FIX (STABLE) =====
     const cacheDir = path.join(__dirname, "cache");
     if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
 
     const imgPath = path.join(cacheDir, "owner.jpg");
-    const imgLink = "https://i.imgur.com/oEh5VEx.jpeg";
+    const imgLink = "https://i.imgur.com/3RMAJwi.jpeg";
 
-    const send = () => {
-      api.sendMessage(
+    const downloadImage = () => {
+      return new Promise((resolve, reject) => {
+        request({ url: imgLink, encoding: null })
+          .pipe(fs.createWriteStream(imgPath))
+          .on("finish", resolve)
+          .on("error", reject);
+      });
+    };
+
+    try {
+      await downloadImage();
+
+      await api.sendMessage(
         {
           body: ownerText,
           attachment: fs.createReadStream(imgPath)
         },
-        event.threadID,
-        () => fs.unlinkSync(imgPath)
+        event.threadID
       );
-    };
 
-    request(encodeURI(imgLink))
-      .pipe(fs.createWriteStream(imgPath))
-      .on("close", send);
+      fs.unlinkSync(imgPath);
+    } catch (err) {
+      console.error("Owner command error:", err);
+      api.sendMessage(ownerText, event.threadID);
+    }
   }
 };

@@ -34,12 +34,12 @@ module.exports = {
 
     // === Loading message ===
     const loadingMsg = await api.sendMessage(
-      { body: "⏳ Loading leaderboard..." },
+      { body: "" },
       event.threadID
     );
 
     try {
-      await api.editMessage("⏳ Fetching data...", loadingMsg.messageID);
+      await api.editMessage("", loadingMsg.messageID);
     } catch {}
 
     // === THREAD USERS ===

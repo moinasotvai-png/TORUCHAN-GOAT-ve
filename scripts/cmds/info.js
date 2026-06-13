@@ -112,7 +112,7 @@ async function drawPage1(ctx) {
   ctx.shadowBlur = 12;
 
   const lines = [
-    "Nickname: Kakashi æ„?", "Age: 20+", "DOB:13 December 2006",
+    "Nickname: Kakashi 愛", "Age: 20+", "DOB:16 December 2006",
     "Gender: Male", "Religion: Islam", "Nationality: Bangladeshi",
     "Location: Jashore", "Class: HSC26",
     `Time: ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Dhaka" })}`
@@ -143,7 +143,13 @@ module.exports = {
   onStart: async function ({ api, event }) {
 
     const loadingFrames = [
-  ];
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐂𝐚𝐫𝐝...\n▰▱▱▱▱▱▱▱▱▱ 10%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐂𝐚𝐫𝐝...\n▰▰▰▱▱▱▱▱▱▱ 30%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐂𝐚𝐫𝐝...\n▰▰▰▰▰▱▱▱▱▱ 50%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐂𝐚𝐫𝐝...\n▰▰▰▰▰▰▰▱▱▱ 70%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐂𝐚𝐫𝐝...\n▰▰▰▰▰▰▰▰▰▱ 90%",
+      "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐂𝐚𝐫𝐝...\n▰▰▰▰▰▰▰▰▰▰ 100%"
+    ];
 
     const loadingMsg = await api.sendMessage(loadingFrames[0], event.threadID);
     for (let i = 1; i < loadingFrames.length; i++) {

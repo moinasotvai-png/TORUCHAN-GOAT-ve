@@ -2,117 +2,94 @@ const fs = require("fs-extra");
 const path = require("path");
 const https = require("https");
 
+// 🔒 anti double trigger lock
+const running = new Set();
+
 module.exports = {
   config: {
     name: "prefix",
-    version: "18.0",
+    version: "15.3",
     author: "Hridoy",
-    description: "Advanced Prefix System",
+    description: "Full prefix system with random animation + gif (fixed)",
     category: "Utility"
   },
 
-  // ================= START =================
   onStart: async function ({ message, event, api, args }) {
+
+    const key = event.threadID;
+    if (running.has(key)) return;
+    running.add(key);
+    setTimeout(() => running.delete(key), 5000);
 
     const prefixFile = path.join(__dirname, "prefixData.json");
 
-    // Create prefix data file
     if (!fs.existsSync(prefixFile)) {
       fs.writeFileSync(prefixFile, JSON.stringify({}, null, 2));
     }
 
-    // Get Prefix
     const getPrefix = (threadID) => {
-      const data = JSON.parse(
-        fs.readFileSync(prefixFile)
-      );
-
-      return (
-        data[threadID] ||
-        global.GoatBot.config.prefix ||
-        "."
-      );
+      const data = JSON.parse(fs.readFileSync(prefixFile));
+      return data[threadID] || global.GoatBot.config.prefix;
     };
 
-    // Set Prefix
     const setPrefix = (threadID, newPrefix) => {
-      const data = JSON.parse(
-        fs.readFileSync(prefixFile)
-      );
-
+      const data = JSON.parse(fs.readFileSync(prefixFile));
       data[threadID] = newPrefix;
-
-      fs.writeFileSync(
-        prefixFile,
-        JSON.stringify(data, null, 2)
-      );
+      fs.writeFileSync(prefixFile, JSON.stringify(data, null, 2));
     };
 
-    const botPrefix =
-      global.GoatBot.config.prefix || ".";
-
-    const groupPrefix =
-      getPrefix(event.threadID);
-
-    // ================= PREFIX SET =================
-    if (args && args[0] === "set") {
-
-      // Group Admin Check
-      if (event.isGroup) {
-
-        const threadInfo =
-          await api.getThreadInfo(event.threadID);
-
-        const isAdmin =
-          threadInfo.adminIDs.some(
-            item => item.id == event.senderID
-          );
-
-        if (!isAdmin) {
-          return message.reply(
-            "❌ | Only group admins can change prefix."
-          );
-        }
-      }
-
+    // ================= SET PREFIX =================
+    if (args[0] === "set") {
       const newPrefix = args[1];
 
       if (!newPrefix) {
-        return message.reply(
-          "❌ | Example: prefix set !"
-        );
+        running.delete(key);
+        return message.reply("❌ | Example: prefix set !");
       }
 
-      // Save Prefix
-      if (event.isGroup) {
-        setPrefix(event.threadID, newPrefix);
-      }
-      else {
-        global.GoatBot.config.prefix =
-          newPrefix;
-      }
+      setPrefix(event.threadID, newPrefix);
+      global.GoatBot.config.prefix = newPrefix;
 
-      return message.reply(
-        `✅ | Prefix Changed Successfully!\n\n🔹 New Prefix: ${newPrefix}`
-      );
+      running.delete(key);
+      return message.reply(`✅ Prefix changed successfully!\nNew Prefix: ${newPrefix}`);
     }
 
-    // ================= INFO =================
-    const ping = event.timestamp
-      ? Date.now() - event.timestamp
-      : 0;
+    const botPrefix = global.GoatBot.config.prefix || "!";
+    const groupPrefix = getPrefix(event.threadID);
 
-    const day = new Date().toLocaleString(
-      "en-US",
-      { weekday: "long" }
-    );
+    const ping = Date.now() - event.timestamp;
+    const day = new Date().toLocaleString("en-US", { weekday: "long" });
+    const BOTNAME = global.GoatBot.config.nickNameBot || "KakashiBot";
 
-    const BOTNAME =
-      global.GoatBot.config.nickNameBot ||
-      "KakashiBot";
+    // ================= LOADING SETS =================
+    const loadingSets = [
+      [
+        "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐏𝐫𝐞𝐟𝐢𝐱...\n▰▱▱▱▱▱▱▱▱▱ 10%",
+        "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐏𝐫𝐞𝐟𝐢𝐱...\n▰▰▰▱▱▱▱▱▱▱ 30%",
+        "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐏𝐫𝐞𝐟𝐢𝐱...\n▰▰▰▰▰▱▱▱▱▱ 50%",
+        "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐏𝐫𝐞𝐟𝐢𝐱...\n▰▰▰▰▰▰▰▱▱▱ 70%",
+        "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐏𝐫𝐞𝐟𝐢𝐱...\n▰▰▰▰▰▰▰▰▰▱ 90%",
+        "𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐏𝐫𝐞𝐟𝐢𝐱...\n▰▰▰▰▰▰▰▰▰▰ 100%"
+      ],
 
-    const BOTPREFIX = botPrefix;
-    const GROUPPREFIX = groupPrefix;
+      [
+        "𝙇𝙤𝙖𝙙𝙞𝙣𝙜 𝙋𝙧𝙚𝙛𝙞𝙭...\n[■□□□□□□□□□] 10%",
+        "𝙇𝙤𝙖𝙙𝙞𝙣𝙜 𝙋𝙧𝙚𝙛𝙞𝙭...\n[■■■□□□□□□□] 30%",
+        "𝙇𝙤𝙖𝙙𝙞𝙣𝙜 𝙋𝙧𝙚𝙛𝙞𝙭...\n[■■■■■□□□□□] 50%",
+        "𝙇𝙤𝙖𝙙𝙞𝙣𝙜 𝙋𝙧𝙚𝙛𝙞𝙭...\n[■■■■■■■□□□] 70%",
+        "𝙇𝙤𝙖𝙙𝙞𝙣𝙜 𝙋𝙧𝙚𝙛𝙞𝙭...\n[■■■■■■■■■□] 90%",
+        "𝙇𝙤𝙖𝙙𝙞𝙣𝙜 𝙋𝙧𝙚𝙛𝙞𝙭...\n[■■■■■■■■■■] 100%"
+      ],
+
+      [
+        "𝙻𝚘𝚊𝚍𝚒𝚗𝚐 𝙿𝚛𝚎𝚏𝚒𝚡...\n◉□□□□□□□□□ 10%",
+        "𝙻𝚘𝚊𝚍𝚒𝚗𝚐 𝙿𝚛𝚎𝚏𝚒𝚡...\n◉◉◉□□□□□□□ 30%",
+        "𝙻𝚘𝚊𝚍𝚒𝚗𝚐 𝙿𝚛𝚎𝚏𝚒𝚡...\n◉◉◉◉◉□□□□□ 50%",
+        "𝙻𝚘𝚊𝚍𝚒𝚗𝚐 𝙿𝚛𝚎𝚏𝚒𝚡...\n◉◉◉◉◉◉◉□□□ 70%",
+        "𝙻𝚘𝚊𝚍𝚒𝚗𝚐 𝙿𝚛𝚎𝚏𝚒𝚡...\n◉◉◉◉◉◉◉◉◉□ 90%",
+        "𝙻𝚘𝚊𝚍𝚒𝚗𝚐 𝙿𝚛𝚎𝚏𝚒𝚡...\n◉◉◉◉◉◉◉◉◉◉ 100%"
+      ]
+    ];
 
     // ================= GIFS =================
     const gifs = [
@@ -128,166 +105,94 @@ module.exports = {
       "https://i.imgur.com/KrEez4A.gif"
     ];
 
-    // ================= TEXT STYLE =================
+    // ================= TEXT FRAMES =================
     const textFrames = [
-
-`🌟╔══༶•PREFIX INFO•༶══╗🌟
+`🌟 PREFIX INFO 🌟
 🕒 Ping: ${ping}ms
 📅 Day: ${day}
-💠 Bot Prefix: ${BOTPREFIX}
-💬 Group Prefix: ${GROUPPREFIX}
-🤖 Bot Name: ${BOTNAME}
-🌟╚═════༶• END •༶════╝🌟`,
+💠 Bot Prefix: ${botPrefix}
+💬 Group Prefix: ${groupPrefix}
+🤖 Bot Name: ${BOTNAME}`,
 
-`╭━━━•PREFIX STATUS•━━━╮
-⏱ Ping: ${ping}ms
-📆 Day: ${day}
-🔹 Bot Prefix: ${BOTPREFIX}
-🔹 Group Prefix: ${GROUPPREFIX}
-🤖 Bot: ${BOTNAME}
-╰━━━━━━━━━━━━━━━━╯`,
+`╭━PREFIX STATUS━╮
+│ Ping: ${ping}ms
+│ Day: ${day}
+│ Prefix: ${botPrefix}
+│ Group: ${groupPrefix}
+╰━━━━━━━━━━━━╯`,
 
-`┏━━━━ PREFIX INFO ━━━━┓
-🕒 Ping: ${ping}ms
-📅 Day: ${day}
-💠 Bot Prefix: ${BOTPREFIX}
-💬 Group Prefix: ${GROUPPREFIX}
-🤖 Bot: ${BOTNAME}
-┗━━━━━━━━━━━━━━━━┛`,
+`┏━ PREFIX INFO━┓
+┃ Ping: ${ping}ms
+┃ Day: ${day}
+┃ Bot: ${BOTNAME}
+┃ Prefix: ${botPrefix}
+┗━━━━━━━━━━━┛`,
 
-`╔════════════════════╗
-      ✨ PREFIX SYSTEM ✨
-╠════════════════════╣
-🕒 Ping: ${ping}ms
-📅 Day: ${day}
-⚡ Bot Prefix: ${BOTPREFIX}
-💬 Group Prefix: ${GROUPPREFIX}
-🤖 Bot Name: ${BOTNAME}
-╚════════════════════╝`
+`▸ PREFIX STATUS ◂
+Ping: ${ping}ms
+Day: ${day}
+Prefix: ${botPrefix}
+Group: ${groupPrefix}`
+
     ];
 
-    const randomGif =
-      gifs[Math.floor(Math.random() * gifs.length)];
+    // ================= RANDOM SELECT =================
+    const randomLoadingSet = loadingSets[Math.floor(Math.random() * loadingSets.length)];
+    const randomGifUrl = gifs[Math.floor(Math.random() * gifs.length)];
+    const randomText = textFrames[Math.floor(Math.random() * textFrames.length)];
 
-    const randomText =
-      textFrames[
-        Math.floor(
-          Math.random() * textFrames.length
-        )
-      ];
+    // ================= LOADING =================
+    const msg = await message.reply(randomLoadingSet[0]);
 
-    // ================= CACHE =================
-    const cacheFolder = path.join(
-      __dirname,
-      "cache"
-    );
-
-    if (!fs.existsSync(cacheFolder)) {
-      fs.mkdirSync(cacheFolder);
+    for (let i = 1; i < randomLoadingSet.length; i++) {
+      await new Promise(r => setTimeout(r, 1000));
+      api.editMessage(randomLoadingSet[i], msg.messageID);
     }
 
-    const fileName =
-      path.basename(randomGif);
+    await new Promise(r => setTimeout(r, 700));
+    api.unsendMessage(msg.messageID);
 
-    const filePath = path.join(
-      cacheFolder,
-      fileName
-    );
+    // ================= CACHE GIF =================
+    const cacheFolder = path.join(__dirname, "cache");
+    if (!fs.existsSync(cacheFolder)) fs.mkdirSync(cacheFolder);
 
-    // ================= DOWNLOAD GIF =================
-    if (!fs.existsSync(filePath)) {
+    const gifName = path.basename(randomGifUrl);
+    const gifPath = path.join(cacheFolder, gifName);
 
-      try {
-
-        await new Promise(
-          (resolve, reject) => {
-
-            const file =
-              fs.createWriteStream(filePath);
-
-            https.get(randomGif, (res) => {
-
-              if (res.statusCode !== 200) {
-                return reject(
-                  new Error(
-                    "Failed to download gif"
-                  )
-                );
-              }
-
-              res.pipe(file);
-
-              file.on("finish", () =>
-                file.close(resolve)
-              );
-
-            }).on("error", (err) => {
-
-              fs.unlink(filePath, () => {});
-              reject(err);
-
-            });
-          }
-        );
-
-      }
-      catch (e) {
-        console.log(e);
-      }
-    }
-
-    // ================= SEND =================
-    return api.sendMessage(
-      {
-        body: randomText,
-
-        attachment:
-          fs.existsSync(filePath)
-            ? fs.createReadStream(filePath)
-            : null
-      },
-
-      event.threadID
-    );
-  },
-
-  // ================= ON CHAT =================
-  onChat: async function ({
-    event,
-    message,
-    api
-  }) {
-
-    if (!event.body) return;
-
-    const body =
-      event.body.trim().toLowerCase();
-
-    const currentPrefix =
-      global.GoatBot.config.prefix || ".";
-
-    // "." দিলে শুধু ছোট reply
-    if (body === currentPrefix) {
-
-      return message.reply(
-        " 🎀> ιт'ѕ ʝυѕт му ρяєƒιχ"
-      );
-    }
-
-    // prefix set !
-    if (body.startsWith("prefix set")) {
-
-      const args = body.split(" ");
-
-      return this.onStart({
-        message,
-        event,
-        api,
-        args
+    if (!fs.existsSync(gifPath)) {
+      await new Promise((resolve, reject) => {
+        const file = fs.createWriteStream(gifPath);
+        https.get(randomGifUrl, res => {
+          res.pipe(file);
+          file.on("finish", () => file.close(resolve));
+        }).on("error", reject);
       });
     }
 
-    // এখানে "prefix" আর trigger হবে না
-    // কারণ command নিজেই handle করবে
+    running.delete(key);
+
+    return api.sendMessage({
+      body: randomText,
+      attachment: fs.createReadStream(gifPath)
+    }, event.threadID);
+  },
+
+  onChat: async function ({ event, message, api }) {
+    if (!event.body) return;
+
+    const body = event.body.trim().toLowerCase();
+
+    if (body === "prefix") {
+      return this.onStart({ message, event, api, args: [] });
+    }
+
+    if (body.startsWith("prefix set ")) {
+      const args = body.split(" ");
+      return this.onStart({ message, event, api, args });
+    }
+
+    if (body === ".") {
+      return message.reply("🎀>ιт'ѕ ʝυѕт му ρяєƒιχ");
+    }
   }
 };

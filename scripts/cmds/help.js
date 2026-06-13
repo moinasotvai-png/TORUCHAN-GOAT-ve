@@ -40,7 +40,7 @@ module.exports = {
 ┃ ⌬ 𝐍𝐚𝐦𝐞 : ${cmd.config.name}
 ┃ ⌬ 𝐂𝐚𝐭𝐞𝐠𝐨𝐫𝐲 : ${cmd.config.category}
 ┃ ⌬ 𝐃𝐞𝐬𝐜𝐫𝐢𝐩𝐭𝐢𝐨𝐧 : ${cmd.config.shortDescription}
-┃ ⌬ 𝐔𝐬𝐚𝐠𝐞 : ${prefix}${cmd.config.name}
+┃ ⌬ 𝐔𝐬𝐚𝐠𝐞 : \( {prefix} \){cmd.config.name}
 ╰━━━━━━━━━━━━━━━━━━━⬣`
       );
     }
@@ -61,23 +61,36 @@ module.exports = {
     for (let cat in categories)
       categories[cat].sort();
 
-    // ===== LOADING ANIMATION =====
+    // ===== LOADING ANIMATION (PROGRESS BAR) =====
     const loadingFrames = [
-
+      "⏳ 𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐇𝐞𝐥𝐩 𝐌𝐞𝐧𝐮...\n▰▱▱▱▱▱▱▱▱▱ 10%",
+      "⏳ 𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐇𝐞𝐥𝐩 𝐌𝐞𝐧𝐮...\n▰▰▰▱▱▱▱▱▱▱ 30%",
+      "⏳ 𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐇𝐞𝐥𝐩 𝐌𝐞𝐧𝐮...\n▰▰▰▰▰▱▱▱▱▱ 50%",
+      "⏳ 𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐇𝐞𝐥𝐩 𝐌𝐞𝐧𝐮...\n▰▰▰▰▰▰▰▱▱▱ 70%",
+      "⏳ 𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐇𝐞𝐥𝐩 𝐌𝐞𝐧𝐮...\n▰▰▰▰▰▰▰▰▰▱ 90%",
+      "⏳ 𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐇𝐞𝐥𝐩 𝐌𝐞𝐧𝐮...\n▰▰▰▰▰▰▰▰▰▰ 100%"
     ];
 
-    let loadingMsg = await message.reply(loadingFrames[0]);
+    let loadingMsg;
+    try {
+      loadingMsg = await message.reply(loadingFrames[0]);
+    } catch (e) {
+      console.error("Failed to send loading message");
+    }
 
+    // Animate loading
     for (let i = 1; i < loadingFrames.length; i++) {
       await new Promise(res => setTimeout(res, 400));
-      try {
-        await api.editMessage(loadingFrames[i], loadingMsg.messageID);
-      } catch (e) {
-        // ignore error (fix for "message too old or not from you")
+      if (loadingMsg) {
+        try {
+          await api.editMessage(loadingFrames[i], loadingMsg.messageID);
+        } catch (e) {
+          // Ignore if message is too old or deleted
+        }
       }
     }
 
-    // ===== BUILD HELP TEXT (ADVANCED STYLE) =====
+    // ===== BUILD HELP TEXT =====
     let msg = `╭━━━〔 ✦ 𝐀𝐃𝐕𝐀𝐍𝐂𝐄𝐃 𝐇𝐄𝐋𝐏 𝐏𝐀𝐍𝐄𝐋 ✦ 〕━━━⬣\n`;
     msg += `┃ ⌬ 𝐓𝐨𝐭𝐚𝐥 𝐂𝐨𝐦𝐦𝐚𝐧𝐝𝐬 : ${commands.length}\n`;
     msg += `┃ ⌬ 𝐁𝐨𝐭 𝐏𝐫𝐞𝐟𝐢𝐱 : 『 ${prefix} 』\n`;
@@ -85,7 +98,6 @@ module.exports = {
     msg += `╰━━━━━━━━━━━━━━━━━━━⬣\n\n`;
 
     for (let [cat, cmds] of Object.entries(categories)) {
-
       msg += `╭━━━〔 🗂️  ${cat.toUpperCase()} 〕━━━⬣\n`;
 
       for (let i = 0; i < cmds.length; i += 2) {
@@ -128,23 +140,33 @@ module.exports = {
     const gifName = path.basename(randomGifURL);
     const gifPath = path.join(gifFolder, gifName);
 
-    if (!fs.existsSync(gifPath))
-      await downloadGif(randomGifURL, gifPath);
+    if (!fs.existsSync(gifPath)) {
+      try {
+        await downloadGif(randomGifURL, gifPath);
+      } catch (err) {
+        console.error("Failed to download GIF:", err);
+      }
+    }
 
-    // Remove loading
-    await api.unsendMessage(loadingMsg.messageID);
+    // Remove loading message
+    if (loadingMsg) {
+      try {
+        await api.unsendMessage(loadingMsg.messageID);
+      } catch (e) {}
+    }
 
-    // Send final help
+    // Send final help message
     const sent = await message.reply({
       body: msg,
-      attachment: fs.createReadStream(gifPath)
+      attachment: fs.existsSync(gifPath) ? fs.createReadStream(gifPath) : null
     });
 
     // ===== AUTO DELETE AFTER 30s =====
     setTimeout(() => {
-      api.unsendMessage(sent.messageID);
+      try {
+        api.unsendMessage(sent.messageID);
+      } catch (e) {}
     }, 30000);
-
   }
 };
 
@@ -158,8 +180,8 @@ function downloadGif(url, dest) {
         file.close(resolve);
       });
     }).on("error", err => {
-      fs.unlink(dest);
+      fs.unlink(dest, () => {});
       reject(err);
     });
   });
-  }
+}

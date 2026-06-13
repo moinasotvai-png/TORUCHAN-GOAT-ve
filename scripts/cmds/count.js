@@ -2,7 +2,7 @@ module.exports = {
 	config: {
 		name: "count",
 		version: "2.8",
-		author: "Ewr SiFu",
+		author: "Hridoy",
 		countDown: 10,
 		role: 0,
 		description: {
@@ -529,4 +529,3 @@ module.exports = {
 		}
 	}
 };
-  

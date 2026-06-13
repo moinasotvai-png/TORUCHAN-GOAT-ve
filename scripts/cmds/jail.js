@@ -1,62 +1,73 @@
-const axios = require("axios");
 const fs = require("fs-extra");
-const path = require("path");
+const axios = require("axios");
+const { loadImage, createCanvas } = require("canvas");
+
+const JAIL_URL = "https://i.ibb.co.com/84f1gzcJ/pngtree-jail-prison-bars-vector-png-image-6665843.png";
 
 module.exports = {
   config: {
     name: "jail",
-    aliases: ["prison"],
-    version: "1.0",
-    author: "Saimx69x",
+    version: "1.0.0",
+    author: "EryXenX",
     countDown: 5,
     role: 0,
-    description: "Put someone in jail 😆",
-    category: "Tag Fun",
-    guide: {
-      en: "{pn} @tag or reply to a message"
-    }
+    description: {
+      en: "Put someone behind jail bars",
+      bn: "কাউকে জেলের গ্রিলের পেছনে বসাও",
+      hi: "Kisi ko jail ke peeche daalo",
+      tl: "Ilagay ang isa sa likod ng rehas ng bilangguan",
+      ar: "ضع شخصاً خلف قضبان السجن"
+    },
+    category: "fun",
+    guide: { en: "{pn} @mention or reply to a message" }
   },
 
   langs: {
-    en: {
-      noTarget: "⚠️ You must tag someone or reply to their message."
-    }
+    en: { noMention: "❌ | Mention someone or reply to a message!", error: "❌ | Failed to generate. Try again." },
+    bn: { noMention: "❌ | কাউকে mention করুন বা reply করুন!", error: "❌ | তৈরি করতে সমস্যা হয়েছে।" },
+    hi: { noMention: "❌ | Kisi ko mention karein ya reply karein!", error: "❌ | Banana fail hua." },
+    tl: { noMention: "❌ | Mag-mention ng isa o mag-reply!", error: "❌ | Hindi nagawa." },
+    ar: { noMention: "❌ | أشر إلى شخص أو رد على رسالة!", error: "❌ | فشل الإنشاء." }
   },
 
-  onStart: async function ({ event, message, usersData, getLang }) {
+  onStart: async function ({ event, message, getLang }) {
     try {
-      let targetID;
+      const mentionID = Object.keys(event.mentions)[0] || (event.messageReply ? event.messageReply.senderID : null);
+      if (!mentionID) return message.reply(getLang("noMention"));
 
-      if (Object.keys(event.mentions).length > 0) {
-        targetID = Object.keys(event.mentions)[0];
-      } else if (event.messageReply) {
-        targetID = event.messageReply.senderID;
-      }
+      const ts = Date.now();
+      const jailPath = __dirname + "/cache/jail_base_" + ts + ".png";
+      const avatarPath = __dirname + "/cache/jail_avt_" + ts + ".jpg";
+      const outputPath = __dirname + "/cache/jail_out_" + ts + ".jpg";
 
-      if (!targetID) return message.reply(getLang("noTarget"));
+      const [jailRes, avatarRes] = await Promise.all([
+        axios.get(JAIL_URL, { responseType: "arraybuffer" }),
+        axios.get("https://graph.facebook.com/" + mentionID + "/picture?height=720&width=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662", { responseType: "arraybuffer" })
+      ]);
 
-      const userInfo = await usersData.getName(targetID);
-      const avatarURL = await usersData.getAvatarUrl(targetID);
+      fs.writeFileSync(jailPath, Buffer.from(jailRes.data));
+      fs.writeFileSync(avatarPath, Buffer.from(avatarRes.data));
 
-      const apiBaseRes = await axios.get("https://raw.githubusercontent.com/Saim-x69x/sakura/main/ApiUrl.json");
-      const apiBase = apiBaseRes.data?.apiv1;
-      if (!apiBase) return message.reply("❌ API base URL not found in ApiUrl.json.");
+      const jailImg = await loadImage(jailPath);
+      const avatarImg = await loadImage(avatarPath);
 
-      const apiURL = `${apiBase}/api/jail?url=${encodeURIComponent(avatarURL)}`;
-      const imgPath = path.join(__dirname, "tmp", `${targetID}_jail.png`);
+      const W = jailImg.width;
+      const H = jailImg.height;
+      const canvas = createCanvas(W, H);
+      const ctx = canvas.getContext("2d");
 
-      const response = await axios.get(apiURL, { responseType: "arraybuffer" });
-      await fs.outputFile(imgPath, response.data);
+      ctx.drawImage(avatarImg, 0, 0, W, H);
+      ctx.drawImage(jailImg, 0, 0, W, H);
 
-      await message.reply({
-        body: `🚔 ${userInfo} is now behind bars!`,
-        attachment: fs.createReadStream(imgPath)
-      });
+      fs.writeFileSync(outputPath, canvas.toBuffer("image/jpeg", { quality: 0.92 }));
 
-      fs.unlinkSync(imgPath);
+      await message.reply({ body: "🔒 You are in jail!", attachment: fs.createReadStream(outputPath) });
+
+      [jailPath, avatarPath, outputPath].forEach(p => { try { fs.unlinkSync(p); } catch (_) {} });
+
     } catch (err) {
-      console.error(err);
-      message.reply("❌ Failed to generate jail image. Please try again later.");
+      console.error("Jail Error:", err);
+      message.reply(getLang("error"));
     }
   }
 };

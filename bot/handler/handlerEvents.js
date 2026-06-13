@@ -1,6 +1,5 @@
 const fs = require("fs-extra");
 const nullAndUndefined = [undefined, null];
-const leven = require('leven');
 // const { config } = global.GoatBot;
 // const { utils } = global;
 
@@ -272,32 +271,30 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
 			// —————  CHECK BANNED OR ONLY ADMIN BOX  ————— //
 			if (isBannedOrOnlyAdmin(userData, threadData, senderID, threadID, isGroup, commandName, message, langCode))
 				return;
-			if (!command) {
-				if (!hideNotiMessage.commandNotFound) {
+				if (!command) {
+				if (!hideNotiMessage.commandNotFound && (!commandName || commandName.trim() === ""))
+					return await message.reply(utils.getText({ lang: langCode, head: "handlerEvents" }, "prefixOnly", prefix));
+				if (!hideNotiMessage.commandNotFound && commandName) {
+					const input = commandName.toLowerCase();
 					const allCommands = Array.from(GoatBot.commands.keys());
-					let closestCommand = null;
-					let minDistance = 999;
-					const distanceThreshold = 2;
-					if (commandName) {
-						for (const correctCommand of allCommands) {
-							const distance = leven(commandName.toLowerCase(), correctCommand.toLowerCase());
-							if (distance < minDistance && distance <= distanceThreshold) {
-								minDistance = distance;
-								closestCommand = correctCommand;
-							}
-						}
+					function levenDist(a, b) {
+						const m = a.length, n = b.length;
+						const dp = Array.from({length: m+1}, (_, i) => Array.from({length: n+1}, (_, j) => i||j));
+						for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++)
+							dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+						return dp[m][n];
 					}
-					if (closestCommand) {
-						return await message.reply(
-							utils.getText({ lang: langCode, head: "handlerEvents" }, "commandNotFoundSuggestion", closestCommand, prefix)
-						);
-					} else {
-						return await message.reply(
-							commandName ?
-								utils.getText({ lang: langCode, head: "handlerEvents" }, "commandNotFound", commandName, prefix) :
-								utils.getText({ lang: langCode, head: "handlerEvents" }, "commandNotFound2", prefix)
-						);
-					}
+					const scored = allCommands.map(cmd => {
+						const c = cmd.toLowerCase();
+						const substringBonus = input.includes(c) || c.includes(input) ? -100 : 0;
+						return { cmd, score: levenDist(input, c) + substringBonus };
+					});
+					scored.sort((a, b) => a.score - b.score);
+					const bestScore = scored[0].score;
+					const top = scored.filter(s => s.score <= bestScore + 1).slice(0, 3).map(s => `› ${prefix}${s.cmd}`);
+					return await message.reply(
+						utils.getText({ lang: langCode, head: "handlerEvents" }, "commandNotFoundSuggestion", top.join("\n"), prefix)
+					);
 				} else return true;
 			}
 			// ————————————— CHECK PERMISSION ———————————— //

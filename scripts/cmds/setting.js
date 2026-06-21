@@ -10,7 +10,7 @@ module.exports = {
 		role: 2,
 		shortDescription: "Bot settings",
 		longDescription: "Control bot settings",
-		category: "admin",
+		category: "Admin",
 		guide: "{prefix}setting"
 	},
 

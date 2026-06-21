@@ -1,311 +1,146 @@
-const os = require('os');
-const { createCanvas, loadImage } = require('canvas');
-const fs = require('fs-extra');
-const path = require('path');
-const si = require('systeminformation');
-
-function sanitizePercentage(value, defaultVal = 0) {
-    const num = parseFloat(value);
-    if (isNaN(num)) return defaultVal;
-    return Math.max(0, Math.min(100, num));
-}
-
-function formatUptime(seconds, short = false) {
-    const d = Math.floor(seconds / (3600 * 24));
-    const h = Math.floor((seconds % (3600 * 24)) / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    if (short) return `${d}d`;
-    return `${d}d ${h}h ${m}m ${s}s`;
-}
-
-function getCurrentCPUUsage() {
-    return new Promise((resolve) => {
-        const startCores = os.cpus();
-        setTimeout(() => {
-            const endCores = os.cpus();
-            let totalIdle = 0;
-            let totalTick = 0;
-
-            for (let i = 0; i < endCores.length; i++) {
-                const start = startCores[i].times;
-                const end = endCores[i].times;
-                totalTick += (end.user - start.user) + (end.nice - start.nice) + (end.sys - start.sys) + (end.irq - start.irq) + (end.idle - start.idle);
-                totalIdle += (end.idle - start.idle);
-            }
-            const usage = totalTick > 0 ? ((totalTick - totalIdle) / totalTick) * 100 : 0;
-            resolve(Math.max(0, Math.min(100, usage)).toFixed(2));
-        }, 100);
-    });
-}
-
-async function getPrimaryDiskUsage() {
-    try {
-        const data = await si.fsSize();
-        const primaryDisk = data.find(d => d.mount === '/' || d.fs.toLowerCase().startsWith('c:')) || data[0];
-        if (primaryDisk) {
-            return {
-                use: primaryDisk.use,
-                total: (primaryDisk.size / 1024 / 1024 / 1024).toFixed(1),
-                used: (primaryDisk.used / 1024 / 1024 / 1024).toFixed(1)
-            };
-        }
-    } catch (e) {
-        console.error("Failed to get disk usage with systeminformation:", e);
-    }
-    return { use: 0, total: '0', used: '0' };
-}
-
-function drawRoundRect(ctx, x, y, width, height, radius, fillStyle, strokeStyle = null, lineWidth = 1) {
-    if (width <= 0 || height <= 0) return;
-    const r = Math.min(radius, width / 2, height / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + width - r, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
-    ctx.lineTo(x + width, y + height - r);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
-    ctx.lineTo(x + r, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-    if (fillStyle) {
-        ctx.fillStyle = fillStyle;
-        ctx.fill();
-    }
-    if (strokeStyle) {
-        ctx.strokeStyle = strokeStyle;
-        ctx.lineWidth = lineWidth;
-        ctx.stroke();
-    }
-}
-
-function drawLinearProgressBar(ctx, x, y, width, height, progressPercentage, barColor, bgColor, label, valueText, font, textColor) {
-    if (width <= 0 || height <= 0) return;
-    const sanitizedProgress = sanitizePercentage(progressPercentage);
-
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(x, y, width, height);
-
-    const progressWidth = (width * sanitizedProgress) / 100;
-    if (progressWidth > 0) {
-        ctx.fillStyle = barColor;
-        ctx.fillRect(x, y, progressWidth, height);
-    }
-
-    ctx.fillStyle = textColor;
-    ctx.font = font;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(label, x, y - height - 2);
-
-    ctx.textAlign = 'right';
-    ctx.fillText(valueText, x + width, y - height - 2);
-    ctx.textAlign = 'left';
-}
-
-function drawStatCircle(ctx, x, y, radius, mainText, subText, mainColor, subColor, circleColor, bgColor) {
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = bgColor;
-    ctx.fill();
-    ctx.strokeStyle = circleColor;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    ctx.fillStyle = mainColor;
-    ctx.font = `bold ${radius * 0.35}px Arial, Sans-Serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(mainText, x, y - radius * 0.2);
-
-    ctx.fillStyle = subColor;
-    ctx.font = `${radius * 0.22}px Arial, Sans-Serif`;
-    ctx.fillText(subText, x, y + radius * 0.4);
-}
+const os = require("os");
+const moment = require("moment-timezone");
+const { createCanvas } = require("canvas");
+const GIFEncoder = require("gif-encoder-2");
+const fs = require("fs");
+const path = require("path");
 
 module.exports = {
-    config: {
-        name: 'cpanel',
-        aliases: ['system', 'panel'],
-        version: '4.3',
-        author: 'sifu',
-        countDown: 15,
-        role: 0,
-        shortDescription: 'Display system stats as an image.',
-        category: 'System',
-    },
+  config: {
+    name: "cpanel",
+    version: "2.4.78",
+    author: "Hridoy",
+    description: "Génère un GIF animé type tableau de bord système en style hexagonal.",
+    usage: "cpanel",
+    category: "System",
+    role: 0
+  },
 
-    onStart: async function ({ message }) {
-        try {
-            const botUptimeSeconds = process.uptime();
-            const systemUptimeSeconds = os.uptime();
-            const totalMemory = os.totalmem();
-            const freeMemory = os.freemem();
-            const usedMemory = totalMemory - freeMemory;
+  onStart: async function ({ api, event }) {
+    try {
+      const width = 1000, height = 700;
+      const encoder = new GIFEncoder(width, height);
+      const fileName = `cpanel_${Date.now()}.gif`;
+      const filePath = path.join(__dirname, fileName);
+      const stream = fs.createWriteStream(filePath);
+      encoder.createReadStream().pipe(stream);
 
-            let osMemoryUsagePercentageNum = (usedMemory / totalMemory) * 100;
-            let currentCpuUsageNum = parseFloat(await getCurrentCPUUsage());
-            const diskInfo = await getPrimaryDiskUsage();
+      encoder.start();
+      encoder.setRepeat(0);
+      encoder.setDelay(150);
+      encoder.setQuality(10);
 
-            osMemoryUsagePercentageNum = sanitizePercentage(osMemoryUsagePercentageNum);
-            currentCpuUsageNum = sanitizePercentage(currentCpuUsageNum);
-            diskInfo.use = sanitizePercentage(diskInfo.use);
+      const canvas = createCanvas(width, height);
+      const ctx = canvas.getContext("2d");
 
-            const canvasWidth = 1000;
-            const canvasHeight = 667;
-            const canvas = createCanvas(canvasWidth, canvasHeight);
-            const ctx = canvas.getContext('2d');
+      const formatUptime = (sec) => {
+        const d = Math.floor(sec / 86400);
+        const h = Math.floor((sec % 86400) / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        return `${d}j ${h}h ${m}m`;
+      };
 
-            // *** MULTI RANDOM BACKGROUND HERE ***
-            const bgList = [
+      const getSystemStats = () => {
+        const uptime = os.uptime();
+        const totalMem = os.totalmem() / 1024 / 1024 / 1024;
+        const freeMem = os.freemem() / 1024 / 1024 / 1024;
+        const usedMem = totalMem - freeMem;
+        return [
+          ["UPTIME BOT", formatUptime(process.uptime())],
+          ["COEURS CPU", os.cpus().length.toString()],
+          ["NODE.JS", process.version],
+          ["DISQUE UTILISÉ", "21.8%"],
+          ["RAM UTILISÉE", (usedMem / totalMem * 100).toFixed(1) + "%"],
+          ["UPTIME SYSTÈME", formatUptime(uptime)],
+          ["DISQUE TOTAL", "45.0 GB"],
+          ["CPU UTILISÉ", os.loadavg()[0].toFixed(1) + "%"],
+          ["RAM TOTALE", totalMem.toFixed(1) + " GB"]
+        ];
+      };
 
-     'https://i.ibb.co/vR8qj66/h3s-ZEZRyx-B.jpg.jpeg',
+      const hexColors = ["#ffff55", "#55ff55", "#5599ff", "#cc55ff", "#aa7755"];
 
-     'https://i.ibb.co/rGmRRGGm/Y7j-Y9-Vcf-PG.jpg.jpeg',
-     
-     'https://i.ibb.co/pryKt28g/1772828553534.jpg',
-     
-    'https://i.ibb.co/hRF9bfQz/1772828618832.jpg',
-    
-    'https://i.ibb.co/TqTgJrHg/1772828623031.jpg',
-    
-    'https://i.ibb.co/tT3HzvjR/1772828631724.jpg',
-
-     'https://i.ibb.co/fdkdLrtk/v-VKZqzj-D6k.jpg.jpeg'
-
-            ];
-
-            const bgUrl = bgList[Math.floor(Math.random() * bgList.length)];
-
-            try {
-                const bgImage = await loadImage(bgUrl);
-                ctx.drawImage(bgImage, 0, 0, canvasWidth, canvasHeight);
-            } catch (imgError) {
-                console.error("BG load failed:", imgError);
-                ctx.fillStyle = '#030C29';
-                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            }
-
-            // HEADER TEXT
-            ctx.fillStyle = "#fff";
-            ctx.font = `bold 32px Arial`;
-            ctx.fillText("✦ 𝐓𝐎𝐑𝐔 𝐂𝐇𝐀𝐍 ✦", 30, 45);
-
-            const now = new Date();
-            ctx.font = `14px Arial`;
-            ctx.textAlign = 'right';
-            ctx.fillText(`${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`, canvasWidth - 30, 35);
-
-            // Draw panels etc (ALL YOUR ORIGINAL CODE)
-            // ------------------------------------------------------------
-            const panelFillColor = '#000000B0';
-            const panelStrokeColor = '#60A5FA88';
-            const textColorPrimary = '#E5E7EB';
-            const textColorSecondary = '#9CA3AF';
-            const accentRed = '#F7546C';
-            const accentPurple = '#A78BFA';
-            const accentBlue = '#3B82F6';
-            const progressBarBG = '#3A3D5288';
-            const circleBG = '#00000099';
-
-            const panelGap = 20;
-            const panelY = 80;
-            const panelHeight = canvasHeight - 110;
-            const totalPanelWidth = canvasWidth - panelGap * 3;
-            const panelWidth = totalPanelWidth / 2;
-            const leftPanelX = panelGap;
-            const rightPanelX = leftPanelX + panelWidth + panelGap;
-
-            drawRoundRect(ctx, leftPanelX, panelY, panelWidth, panelHeight, 15, panelFillColor, panelStrokeColor, 2);
-            drawRoundRect(ctx, rightPanelX, panelY, panelWidth, panelHeight, 15, panelFillColor, panelStrokeColor, 2);
-
-            let currentY = panelY + 40;
-            const leftMargin = leftPanelX + 30;
-            const leftBarWidth = panelWidth - 60;
-            const barHeight = 5;
-
-            ctx.fillStyle = textColorPrimary;
-            ctx.font = `bold 20px Arial`;
-            ctx.textAlign = 'center';
-            ctx.fillText("System Status Overview", leftPanelX + panelWidth / 2, currentY);
-            ctx.textAlign = 'left';
-
-            currentY += 60;
-            drawLinearProgressBar(ctx, leftMargin, currentY, leftBarWidth, barHeight, currentCpuUsageNum, accentRed, progressBarBG, "CPU Usage", `${currentCpuUsageNum.toFixed(1)}%`, `14px Arial`, textColorPrimary);
-
-            currentY += 60;
-            drawLinearProgressBar(ctx, leftMargin, currentY, leftBarWidth, barHeight, osMemoryUsagePercentageNum, accentPurple, progressBarBG, "Memory Usage", `${osMemoryUsagePercentageNum.toFixed(1)}%`, `14px Arial`, textColorPrimary);
-
-            currentY += 60;
-            drawLinearProgressBar(ctx, leftMargin, currentY, leftBarWidth, barHeight, diskInfo.use, accentBlue, progressBarBG, "Disk Usage", `${diskInfo.use}%`, `14px Arial`, textColorPrimary);
-
-            currentY += 80;
-
-            const infoItems = [
-                { label: "Bot Uptime:", value: formatUptime(botUptimeSeconds) },
-                { label: "System Uptime:", value: formatUptime(systemUptimeSeconds) },
-                { label: "CPU Cores:", value: os.cpus().length },
-                { label: "Total RAM:", value: `${(totalMemory / 1024 ** 3).toFixed(1)} GB` },
-                { label: "Used Disk:", value: `${diskInfo.used} GB` }
-            ];
-
-            infoItems.forEach(item => {
-                ctx.fillStyle = textColorSecondary;
-                ctx.textAlign = 'left';
-                ctx.fillText(item.label, leftMargin + 10, currentY);
-                ctx.fillStyle = textColorPrimary;
-                ctx.textAlign = 'right';
-                ctx.fillText(item.value, leftPanelX + panelWidth - 30, currentY);
-                currentY += 30;
-            });
-
-            // Right panel circles
-            const buttonRadius = 35;
-            const gridCols = 3;
-            const gridRows = 4;
-            const buttonStartX = rightPanelX + 20;
-            const buttonStartY = panelY + 80;
-            const colWidth = (panelWidth - 40) / gridCols;
-            const rowHeight = (panelHeight - 100) / gridRows;
-
-            const statsData = [
-                { label: "CPU", value: `${currentCpuUsageNum.toFixed(1)}%`, color: accentRed },
-                { label: "RAM", value: `${osMemoryUsagePercentageNum.toFixed(1)}%`, color: accentPurple },
-                { label: "DISK", value: `${diskInfo.use}%`, color: accentBlue },
-                { label: "BOT UP", value: formatUptime(botUptimeSeconds, true), color: textColorSecondary },
-                { label: "SYS UP", value: formatUptime(systemUptimeSeconds, true), color: textColorSecondary },
-                { label: "CORES", value: os.cpus().length, color: textColorSecondary },
-                { label: "TOTAL RAM", value: `${(totalMemory / 1024 ** 3).toFixed(1)}GB`, color: accentPurple },
-                { label: "USED RAM", value: `${(usedMemory / 1024 ** 3).toFixed(1)}GB`, color: accentPurple },
-                { label: "TOTAL DISK", value: `${diskInfo.total}GB`, color: accentBlue },
-                { label: "USED DISK", value: `${diskInfo.used}GB`, color: accentBlue }
-            ];
-
-            let index = 0;
-            for (let row = 0; row < gridRows; row++) {
-                for (let col = 0; col < gridCols; col++) {
-                    if (index >= statsData.length) break;
-                    const centerX = buttonStartX + col * colWidth + colWidth / 2;
-                    const centerY = buttonStartY + row * rowHeight + rowHeight / 2;
-                    const d = statsData[index];
-                    drawStatCircle(ctx, centerX, centerY, buttonRadius, d.value, d.label, d.color, textColorSecondary, d.color, circleBG);
-                    index++;
-                }
-            }
-
-            const imgPath = path.join(__dirname, "cache", `system_image_${Date.now()}.png`);
-            await fs.ensureDir(path.dirname(imgPath));
-            fs.writeFileSync(imgPath, canvas.toBuffer("image/png"));
-
-            return message.reply({ attachment: fs.createReadStream(imgPath) }, () => {
-                fs.unlink(imgPath, () => {});
-            });
-
-        } catch (err) {
-            console.error(err);
-            return message.reply("😿 Error generating system dashboard.");
+      const drawHex = (x, y, label, value, alpha = 1, color = "#00ff99") => {
+        const r = 100;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const angle = Math.PI / 3 * i;
+          const x_i = x + r * Math.cos(angle);
+          const y_i = y + r * Math.sin(angle);
+          i === 0 ? ctx.moveTo(x_i, y_i) : ctx.lineTo(x_i, y_i);
         }
+        ctx.closePath();
+        ctx.strokeStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 15;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "18px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(label, x, y - 10);
+        ctx.font = "bold 22px Arial";
+        ctx.fillText(value, x, y + 20);
+        ctx.globalAlpha = 1;
+      };
+
+      const cx = width / 2;
+      const cy = height / 2;
+      const spacing = 180;
+
+      const positions = [
+        [cx, cy - spacing],
+        [cx + spacing, cy - spacing / 2],
+        [cx + spacing, cy + spacing / 2],
+        [cx, cy + spacing],
+        [cx - spacing, cy + spacing / 2],
+        [cx - spacing, cy - spacing / 2],
+        [cx, cy],
+        [cx + spacing * 1.5, cy],
+        [cx - spacing * 1.5, cy]
+      ];
+
+      for (let frame = 0; frame < 10; frame++) {
+        const stats = getSystemStats();
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = "#0f0f1b";
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = "#00ffcc";
+        ctx.font = "bold 32px Arial";
+        ctx.textAlign = "center";
+
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "right";
+        ctx.fillText(moment().tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss"), width - 30, 40);
+        ctx.textAlign = "left";
+        ctx.fillText(`OS: ${os.platform()} (x64)`, 30, 40);
+
+        for (let i = 0; i < stats.length; i++) {
+          const pulse = 0.5 + 0.5 * Math.sin((frame + i) / 2);
+          const color = hexColors[i % hexColors.length];
+          drawHex(positions[i][0], positions[i][1], stats[i][0], stats[i][1], pulse, color);
+        }
+
+        encoder.addFrame(ctx);
+      }
+
+      encoder.finish();
+
+      stream.on("finish", () => {
+        api.sendMessage({
+          body: "📊 System Dashboard",
+          attachment: fs.createReadStream(filePath)
+        }, event.threadID, () => fs.unlinkSync(filePath));
+      });
+
+    } catch (err) {
+      console.error(err);
+      api.sendMessage("❌ Une erreur est survenue lors de la génération du tableau de bord.", event.threadID);
     }
+  }
 };

@@ -16,7 +16,7 @@ module.exports = {
       tl: "Hanapin ang random na pares ngayon",
       ar: "ابحث عن زوج اليوم العشوائي"
     },
-    category: "fun",
+    category: "Love",
     guide: { en: "{pn}" }
   },
 

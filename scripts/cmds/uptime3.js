@@ -59,7 +59,7 @@ module.exports = {
     shortDescription: "Advanced Task Manager + Admin Stats",
     longDescription:
       "Displays a modern system monitor with CPU, RAM, Disk, Network, and admin info .",
-    category: "uptime",
+    category: "System",
     guide: "{pn}"
   },
 

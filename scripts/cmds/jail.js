@@ -18,7 +18,7 @@ module.exports = {
       tl: "Ilagay ang isa sa likod ng rehas ng bilangguan",
       ar: "ضع شخصاً خلف قضبان السجن"
     },
-    category: "fun",
+    category: "Tag Fun",
     guide: { en: "{pn} @mention or reply to a message" }
   },
 

@@ -3,84 +3,117 @@ const fs = require("fs-extra");
 const path = require("path");
 
 module.exports = {
-  config: {
-    name: "4k",
-    version: "1.1",
-    author: "Hridoy",
-    countDown: 5,
-    role: 0,
-    shortDescription: "Upscale image to 4K",
-    longDescription: "Reply to an image to upscale it into 4K",
-    category: "AI",
-    guide: "{pn} (reply to image)"
-  },
+	config: {
+		name: "4k",
+		aliases: ["upscale"],
+		version: "1.5",
+		author: "SIFAT",
+		countDown: 15,
+		role: 0,
+		shortDescription: "AI Image Upscaler",
+		longDescription: "Upscale image to 4K using AI API",
+		category: "tools",
+		guide: "{pn} reply to an image"
+	},
 
-  onStart: async function ({ message, event, api }) {
+	onStart: async function ({ event, message, api }) {
+		const { messageReply, type, messageID } = event;
 
-    function extractImageUrl(event) {
-      if (event.messageReply && event.messageReply.attachments?.length > 0) {
-        const img = event.messageReply.attachments.find(
-          a => a.type === "photo" || a.type === "image"
-        );
-        if (img?.url) return img.url;
-      }
-      return null;
-    }
+		// Validate image reply
+		if (
+			type !== "message_reply" ||
+			!messageReply ||
+			!messageReply.attachments ||
+			messageReply.attachments.length === 0 ||
+			messageReply.attachments[0].type !== "photo"
+		) {
+			return message.reply(
+`╭━━━〔 🖼️ 4K UPSCALER 〕━━━╮
+┃ ⚠️ Reply to an image first
+┃ to upscale it to 4K
+╰━━━━━━━━━━━━━━━━━━━━━━━╯`
+			);
+		}
 
-    const imageUrl = extractImageUrl(event);
+		const imageUrl = messageReply.attachments[0].url;
 
-    if (!imageUrl)
-      return message.reply("❌ Please reply to an image.");
+		const cacheDir = path.join(__dirname, "cache");
+		await fs.ensureDir(cacheDir);
 
-    let tempFile;
+		const filePath = path.join(
+			cacheDir,
+			`upscale_${Date.now()}.png`
+		);
 
-    try {
-      // ✅ FIX: old reaction system
-      api.setMessageReaction("⏳", event.messageID, () => {}, true);
+		try {
+			// ⏳ reaction on start
+			await api.setMessageReaction("⏳", messageID, () => {}, true);
 
-      const API_ENDPOINT = "https://free-goat-api.onrender.com/4k";
-      const fullApiUrl = `${API_ENDPOINT}?url=${encodeURIComponent(imageUrl)}`;
+			const configURL =
+				"https://raw.githubusercontent.com/MYB-SIFU/SIFATChudtese/refs/heads/main/sifatapichudtese.json";
 
-      const apiRes = await axios.get(fullApiUrl);
-      const data = apiRes.data;
+			const configRes = await axios.get(configURL, {
+				timeout: 10000
+			});
 
-      if (!data.image)
-        throw new Error("API did not return image URL");
+			if (!configRes.data || !configRes.data["4k"]) {
+				throw new Error("API config missing");
+			}
 
-      const finalUrl = data.image;
+			const apiURL = `${configRes.data["4k"]}/api/upscale`;
 
-      const imgStream = await axios.get(finalUrl, { responseType: "stream" });
+			const res = await axios.post(
+				apiURL,
+				{ imageUrl },
+				{
+					responseType: "arraybuffer",
+					timeout: 300000
+				}
+			);
 
-      const cache = path.join(__dirname, "cache");
-      if (!fs.existsSync(cache)) fs.mkdirSync(cache);
+			await fs.writeFile(filePath, Buffer.from(res.data));
 
-      tempFile = path.join(cache, `4k_${Date.now()}.jpg`);
+			// ✅ reaction on success
+			await api.setMessageReaction("✅", messageID, () => {}, true);
 
-      const writer = fs.createWriteStream(tempFile);
-      imgStream.data.pipe(writer);
+			// send image
+			await message.reply({
+				body: "✨ Here's your image baby 😘✨",
+				attachment: fs.createReadStream(filePath)
+			});
 
-      await new Promise((resolve, reject) => {
-        writer.on("finish", resolve);
-        writer.on("error", reject);
-      });
+		} catch (err) {
+			console.error("4K UPSCALE ERROR:", err);
 
-      // ✅ FIX
-      api.setMessageReaction("✅", event.messageID, () => {}, true);
+			let errorMsg =
+`╭━━━〔 ❌ ERROR 〕━━━╮
+┃ Upscale failed
+┃ Try again later
+╰━━━━━━━━━━━━━━━╯`;
 
-      return message.reply({
-        body: "🎀 𝐃𝐨𝐧𝐞 𝐛𝐚𝐛𝐲",
-        attachment: fs.createReadStream(tempFile)
-      }, () => fs.unlinkSync(tempFile));
+			if (err.code === "ECONNABORTED") {
+				errorMsg =
+`╭━━━〔 ⏱️ TIMEOUT 〕━━━╮
+┃ Server took too long
+┃ Please try again
+╰━━━━━━━━━━━━━━━╯`;
+			} else if (err.response) {
+				errorMsg =
+`╭━━━〔 ⚠️ API ERROR 〕━━━╮
+┃ ${err.response.status} ${err.response.statusText}
+╰━━━━━━━━━━━━━━━╯`;
+			}
 
-    } catch (err) {
-      console.error("4K UPSCALE ERROR:", err);
-
-      // ✅ FIX
-      api.setMessageReaction("❌", event.messageID, () => {}, true);
-
-      return message.reply(
-        `❌ Error: ${err.message || "Something went wrong."}`
-      );
-    }
-  }
+			await api.setMessageReaction("❌", messageID, () => {}, true);
+			await message.reply(errorMsg);
+		} finally {
+			setTimeout(async () => {
+				try {
+					if (await fs.pathExists(filePath)) {
+						await fs.remove(filePath);
+					}
+				} catch {}
+			}, 5000);
+		}
+	}
 };

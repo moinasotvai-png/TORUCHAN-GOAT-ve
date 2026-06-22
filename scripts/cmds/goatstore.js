@@ -359,7 +359,7 @@ module.exports = {
     role: 2,
     shortDescription: "GoatBot Store — Search, Install, Upload, AutoSync",
     longDescription: "Browse, install, upload, and autosync GoatBot commands and events from the MiraiStore API.",
-    category: "system",
+    category: "System",
     guide: {
       en:
         "{pn} — Menu / Notifications\n" +
